@@ -2,9 +2,44 @@
 
 import { useState } from "react";
 import Input from "@/components/ui/input";
-import HotelSection  from "@/components/requests/sections/hotel-section";
+import HotelSection from "@/components/requests/sections/hotel-section";
 
 export default function RequestForm() {
+  function removeGuest(id: string) {
+    setRequest((prev) => ({
+      ...prev,
+      hotel: {
+        ...prev.hotel,
+        guests: prev.hotel.guests.filter(
+          (g) => g.id !== id
+        ),
+      },
+    }));
+  }
+
+  function addGuest() {
+    if (!guestName.trim()) return;
+
+    const newGuest = {
+      id: crypto.randomUUID(),
+      name: guestName,
+      document: guestDocument,
+    };
+
+    setRequest((prev) => ({
+      ...prev,
+      hotel: {
+        ...prev.hotel,
+        guests: [...prev.hotel.guests, newGuest],
+      },
+    }));
+
+    setGuestName("");
+    setGuestDocument("");
+  }
+
+  const [guestName, setGuestName] = useState("");
+  const [guestDocument, setGuestDocument] = useState('');
   const [request, setRequest] = useState({
     eventName: "",
     local: "",
@@ -13,7 +48,7 @@ export default function RequestForm() {
 
     hotel: {
       enabled: false,
-      guests: [],
+      guests: [] as { id: string; name: string; document: string }[],
       observations: "",
     },
 
@@ -119,7 +154,12 @@ export default function RequestForm() {
         <HotelSection
           guests={request.hotel.guests}
           observations={request.hotel.observations}
-          onAddGuest={() => {}}
+          guestName={guestName}
+          guestDocument={guestDocument}
+          setGuestName={setGuestName}
+          setGuestDocument={setGuestDocument}
+          onAddGuest={addGuest}
+          onRemoveGuest={removeGuest}
         />
       )}
     </div>
