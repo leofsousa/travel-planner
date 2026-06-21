@@ -4,7 +4,7 @@ type HotelSectionProps = {
   onAddGuest: () => void;
 };
 
-export function HotelSection({
+export default function HotelSection({
   guests,
   observations,
   onAddGuest,
