@@ -1,0 +1,4 @@
+# Place your StackBlitz environment variables here,
+# and they will be securely synced to your account.
+NEXT_PUBLIC_SUPABASE_URL=https://yxencgpwkvlkytdwbraw.supabase.co/rest/v1/
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_publishable_keysb_publishable_i1TaeB--BSLQnhnuqmHheA_zqN4hM3T
