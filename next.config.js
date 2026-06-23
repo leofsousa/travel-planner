@@ -1,4 +1,10 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
-
-module.exports = nextConfig;
+const nextConfig = {
+    experimental: {
+      serverActions: {
+        allowedOrigins: ['localhost:3000'],
+      },
+    },
+  }
+  
+  module.exports = nextConfig

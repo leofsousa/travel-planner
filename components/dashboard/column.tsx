@@ -32,8 +32,8 @@ export default function Column({ id, title, requests, status, count }: ColumnPro
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-[280px] transition-colors ${
-        isOver ? "bg-gray-200 rounded-lg" : ""
+      className={`flex-1 min-w-[280px] transition-colors p-2 rounded-lg ${
+        isOver ? "bg-blue-50 border-2 border-dashed border-blue-300" : ""
       }`}
     >
       <div className="flex items-center justify-between mb-3">

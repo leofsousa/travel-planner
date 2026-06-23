@@ -53,9 +53,7 @@ export default function RequestCard({ request }: RequestCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={`bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow cursor-grab ${
+      className={`bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow ${
         isDragging ? "shadow-2xl" : ""
       }`}
     >
@@ -63,6 +61,22 @@ export default function RequestCard({ request }: RequestCardProps) {
         <h3 className="text-lg font-semibold text-gray-900 truncate">
           {request.event_name}
         </h3>
+        {/* Ícone de arrastar */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
+          title="Arraste para mover"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="12" r="1" />
+            <circle cx="9" cy="5" r="1" />
+            <circle cx="9" cy="19" r="1" />
+            <circle cx="15" cy="12" r="1" />
+            <circle cx="15" cy="5" r="1" />
+            <circle cx="15" cy="19" r="1" />
+          </svg>
+        </div>
       </div>
 
       <p className="text-sm text-gray-600 mb-1">📍 {request.location}</p>
