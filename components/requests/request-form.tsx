@@ -1,9 +1,25 @@
 // components/requests/request-form.tsx
 "use client";
 
-import { useState } from "react";
+import { useState } from "react"; // ← NÃO ESQUEÇA!
 import Input from "@/components/ui/input";
 import HotelSection from "./sections/hotel-section";
+import FlightSection from "./sections/flight-section";
+import CarSection from "./sections/car-section";
+
+interface CarDriver {
+  id: string;
+  name: string;
+  document: string;
+}
+
+interface CarRental {
+  id: string;
+  startDate: string;
+  endDate: string;
+  drivers: CarDriver[];
+  observations: string;
+}
 
 interface Request {
   eventName: string;
@@ -19,8 +35,14 @@ interface Request {
     }[];
     observations: string;
   };
-  flight: { enabled: boolean };
-  car: { enabled: boolean };
+  flight: {
+    enabled: boolean;
+    observations: string;
+  };
+  car: {
+    enabled: boolean;
+    rentals: CarRental[];
+  };
 }
 
 export default function RequestForm() {
@@ -34,8 +56,14 @@ export default function RequestForm() {
       guests: [],
       observations: "",
     },
-    flight: { enabled: false },
-    car: { enabled: false },
+    flight: {
+      enabled: false,
+      observations: "",
+    },
+    car: {
+      enabled: false,
+      rentals: [],
+    },
   });
 
   const toggleHotel = (checked: boolean) => {
@@ -48,19 +76,19 @@ export default function RequestForm() {
   const toggleFlight = (checked: boolean) => {
     setRequest((prev) => ({
       ...prev,
-      flight: { enabled: checked },
+      flight: { ...prev.flight, enabled: checked },
     }));
   };
 
   const toggleCar = (checked: boolean) => {
     setRequest((prev) => ({
       ...prev,
-      car: { enabled: checked },
+      car: { ...prev.car, enabled: checked },
     }));
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
+    <div className="min-h-screen p-4">
       <form className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6 space-y-6">
         <h2 className="text-2xl font-bold text-gray-900">
           Nova Solicitação de Viagem
@@ -114,7 +142,7 @@ export default function RequestForm() {
         <div className="space-y-4">
           <h3 className="font-medium text-gray-900">Serviços</h3>
 
-          {/* HOTEL TOGGLE */}
+          {/* HOTEL */}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -128,7 +156,6 @@ export default function RequestForm() {
             </label>
           </div>
 
-          {/* HOTEL SECTION - só aparece se habilitado */}
           {request.hotel.enabled && (
             <HotelSection
               guests={request.hotel.guests}
@@ -162,6 +189,19 @@ export default function RequestForm() {
             </label>
           </div>
 
+          {request.flight.enabled && (
+            <FlightSection
+              enabled={request.flight.enabled}
+              observations={request.flight.observations}
+              onObservationsChange={(observations) =>
+                setRequest((prev) => ({
+                  ...prev,
+                  flight: { ...prev.flight, observations },
+                }))
+              }
+            />
+          )}
+
           {/* CAR */}
           <div className="flex items-center gap-2">
             <input
@@ -175,6 +215,19 @@ export default function RequestForm() {
               Carro
             </label>
           </div>
+
+          {request.car.enabled && (
+            <CarSection
+              enabled={request.car.enabled}
+              rentals={request.car.rentals}
+              onRentalsChange={(rentals) =>
+                setRequest((prev) => ({
+                  ...prev,
+                  car: { ...prev.car, rentals },
+                }))
+              }
+            />
+          )}
         </div>
 
         {/* BOTÃO SUBMIT */}
