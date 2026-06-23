@@ -54,7 +54,7 @@ export default function FlightSection({
         <textarea
           id="flight-observations"
           className="w-full rounded border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-          placeholder="Ex: prefiro horário da manhã"
+          placeholder="Ex: prefiro horário da manhã, aeroporto de sáida, aeroporto para retorno, etc"
           value={observations}
           onChange={(e) => onObservationsChange(e.target.value)}
           rows={3}

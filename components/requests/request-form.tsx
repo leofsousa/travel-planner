@@ -1,11 +1,12 @@
 // components/requests/request-form.tsx
 "use client";
 
-import { useState } from "react"; // ← NÃO ESQUEÇA!
+import { useState } from "react";
 import Input from "@/components/ui/input";
 import HotelSection from "./sections/hotel-section";
 import FlightSection from "./sections/flight-section";
 import CarSection from "./sections/car-section";
+import { createRequest } from "@/lib/services/request-service";
 
 interface CarDriver {
   id: string;
@@ -37,6 +38,8 @@ interface Request {
   };
   flight: {
     enabled: boolean;
+    departureDate: string;
+    returnDate: string;
     observations: string;
   };
   car: {
@@ -58,6 +61,8 @@ export default function RequestForm() {
     },
     flight: {
       enabled: false,
+      departureDate: "",
+      returnDate: "",
       observations: "",
     },
     car: {
@@ -87,6 +92,21 @@ export default function RequestForm() {
     }));
   };
 
+  const handleSubmit = async () => {
+    try {
+      if (!request.eventName.trim() || !request.local.trim()) {
+        alert("Preencha pelo menos o nome do evento e local");
+        return;
+      }
+
+      const result = await createRequest(request);
+      alert(`✅ Solicitação criada com sucesso! ID: ${result.requestId}`);
+      window.location.href = "/";
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Erro ao criar solicitação");
+    }
+  };
+
   return (
     <div className="min-h-screen p-4">
       <form className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6 space-y-6">
@@ -94,7 +114,6 @@ export default function RequestForm() {
           Nova Solicitação de Viagem
         </h2>
 
-        {/* DADOS BÁSICOS */}
         <div className="space-y-4">
           <Input
             label="Nome do Evento"
@@ -138,11 +157,9 @@ export default function RequestForm() {
           </div>
         </div>
 
-        {/* SERVIÇOS */}
         <div className="space-y-4">
           <h3 className="font-medium text-gray-900">Serviços</h3>
 
-          {/* HOTEL */}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -175,7 +192,6 @@ export default function RequestForm() {
             />
           )}
 
-          {/* FLIGHT */}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -192,7 +208,21 @@ export default function RequestForm() {
           {request.flight.enabled && (
             <FlightSection
               enabled={request.flight.enabled}
+              departureDate={request.flight.departureDate}
+              returnDate={request.flight.returnDate}
               observations={request.flight.observations}
+              onDepartureDateChange={(departureDate) =>
+                setRequest((prev) => ({
+                  ...prev,
+                  flight: { ...prev.flight, departureDate },
+                }))
+              }
+              onReturnDateChange={(returnDate) =>
+                setRequest((prev) => ({
+                  ...prev,
+                  flight: { ...prev.flight, returnDate },
+                }))
+              }
               onObservationsChange={(observations) =>
                 setRequest((prev) => ({
                   ...prev,
@@ -202,7 +232,6 @@ export default function RequestForm() {
             />
           )}
 
-          {/* CAR */}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -230,11 +259,10 @@ export default function RequestForm() {
           )}
         </div>
 
-        {/* BOTÃO SUBMIT */}
         <button
           type="button"
+          onClick={handleSubmit}
           className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          onClick={() => console.log("Request:", request)}
         >
           Salvar Solicitação
         </button>
