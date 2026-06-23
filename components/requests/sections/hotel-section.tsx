@@ -240,7 +240,7 @@ export default function HotelSection({
         </label>
         <textarea
           id="hotel-observations"
-          className="w-full rounded border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          className="resize-none w-full rounded border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           placeholder="Ex: quarto com vista, check-in tardio, preferência por andar baixo..."
           value={observations}
           onChange={(e) => onObservationsChange(e.target.value)}

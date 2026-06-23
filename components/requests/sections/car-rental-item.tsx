@@ -233,7 +233,7 @@ export default function CarRentalItem({
         </label>
         <textarea
           id={`car-obs-${rental.id}`}
-          className="w-full rounded border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          className="resize-none w-full rounded border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           placeholder="Ex: categoria do carro, necessidade de cadeirinha, GPS..."
           value={rental.observations}
           onChange={(e) => updateField("observations", e.target.value)}
