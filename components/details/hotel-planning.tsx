@@ -1,0 +1,243 @@
+// app/requests/[id]/components/hotel-planning.tsx
+"use client";
+
+import { useState } from "react";
+import RoomCard from "./room-card";
+import RoomModal from "./room-modal";
+import EmailGenerator from "./email-generator";
+
+interface Guest {
+  id: string;
+  name: string;
+  document: string;
+}
+
+interface Room {
+  id: string;
+  type: "individual" | "duplo" | "triplo" | "quadruplo";
+  guests: Guest[];
+  dailyRate: number;
+  total: number;
+}
+
+interface HotelPlanningProps {
+  requestId: string;
+  eventName: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  availableGuests: Guest[];
+  initialHotel?: {
+    name: string;
+    checkIn: string;
+    checkOut: string;
+    rooms: Room[];
+  };
+}
+
+export default function HotelPlanning({
+  requestId,
+  eventName,
+  location,
+  startDate,
+  endDate,
+  availableGuests,
+  initialHotel,
+}: HotelPlanningProps) {
+  const [hotelName, setHotelName] = useState(initialHotel?.name || "");
+  const [checkIn, setCheckIn] = useState(initialHotel?.checkIn || startDate);
+  const [checkOut, setCheckOut] = useState(initialHotel?.checkOut || endDate);
+  const [rooms, setRooms] = useState<Room[]>(initialHotel?.rooms || []);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+
+  const calculateNights = () => {
+    if (!checkIn || !checkOut) return 0;
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const nights = calculateNights();
+
+  const addRoom = (roomData: Omit<Room, "id" | "total">) => {
+    const newRoom: Room = {
+      ...roomData,
+      id: `room-${Date.now()}`,
+      total: roomData.dailyRate * nights,
+    };
+    setRooms([...rooms, newRoom]);
+  };
+
+  const updateRoom = (updatedRoom: Room) => {
+    setRooms(rooms.map((r) => (r.id === updatedRoom.id ? updatedRoom : r)));
+  };
+
+  const removeRoom = (roomId: string) => {
+    setRooms(rooms.filter((r) => r.id !== roomId));
+  };
+
+  const calculateTotal = () => {
+    return rooms.reduce((sum, room) => sum + room.total, 0);
+  };
+
+  const handleEditRoom = (room: Room) => {
+    setEditingRoom(room);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingRoom(null);
+  };
+
+  const handleModalSave = (roomData: Omit<Room, "id" | "total">) => {
+    if (editingRoom) {
+      const updatedRoom = {
+        ...editingRoom,
+        ...roomData,
+        total: roomData.dailyRate * nights,
+      };
+      updateRoom(updatedRoom);
+    } else {
+      addRoom(roomData);
+    }
+    handleModalClose();
+  };
+
+  const roomTypes = {
+    individual: "Individual",
+    duplo: "Duplo",
+    triplo: "Triplo",
+    quadruplo: "Quadruplo",
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-gray-900">🏨 Planejamento do Hotel</h2>
+        <span className="text-sm text-gray-500">
+          {rooms.length} quarto(s) | {nights} noite(s)
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Nome do Hotel
+          </label>
+          <input
+            type="text"
+            value={hotelName}
+            onChange={(e) => setHotelName(e.target.value)}
+            placeholder="Ex: Hilton São Paulo"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Check-in
+          </label>
+          <input
+            type="date"
+            value={checkIn}
+            onChange={(e) => setCheckIn(e.target.value)}
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Check-out
+          </label>
+          <input
+            type="date"
+            value={checkOut}
+            onChange={(e) => setCheckOut(e.target.value)}
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          />
+        </div>
+      </div>
+
+      {nights > 0 && (
+        <p className="text-sm text-gray-600">
+          📅 Total de {nights} diária(s)
+        </p>
+      )}
+
+      <div className="border-t border-gray-200 pt-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-medium text-gray-900">Quartos</h3>
+          <button
+            onClick={() => {
+              setEditingRoom(null);
+              setIsModalOpen(true);
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+          >
+            + Adicionar Quarto
+          </button>
+        </div>
+
+        {rooms.length === 0 ? (
+          <p className="text-gray-400 text-sm text-center py-8">
+            Nenhum quarto adicionado. Clique em "Adicionar Quarto" para começar.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {rooms.map((room) => (
+              <RoomCard
+                key={room.id}
+                room={room}
+                nights={nights}
+                onEdit={() => handleEditRoom(room)}
+                onRemove={() => removeRoom(room.id)}
+                roomTypes={roomTypes}
+              />
+            ))}
+          </div>
+        )}
+
+        {rooms.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-semibold text-gray-900">
+                Total da reserva:
+              </span>
+              <span className="text-xl font-bold text-blue-600">
+                R$ {calculateTotal().toFixed(2)}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {rooms.length > 0 && hotelName && (
+        <div className="border-t border-gray-200 pt-4">
+          <EmailGenerator
+            eventName={eventName}
+            location={location}
+            hotelName={hotelName}
+            checkIn={checkIn}
+            checkOut={checkOut}
+            rooms={rooms}
+            nights={nights}
+            totalCost={calculateTotal()}
+          />
+        </div>
+      )}
+
+      {isModalOpen && (
+        <RoomModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          onSave={handleModalSave}
+          availableGuests={availableGuests}
+          editingRoom={editingRoom}
+          nights={nights}
+          roomTypes={roomTypes}
+        />
+      )}
+    </div>
+  );
+}

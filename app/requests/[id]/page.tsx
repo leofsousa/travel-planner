@@ -2,6 +2,7 @@
 import { getRequestById, updateRequestStatus } from "@/lib/services/request-service";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import HotelPlanning from "@/components/details/hotel-planning";
 
 interface Params {
   id: string;
@@ -45,6 +46,12 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
   const hasHotel = request.request_hotels?.enabled || false;
   const hasFlight = request.request_flights?.enabled || false;
   const hasCar = request.request_cars?.enabled || false;
+
+  const availableGuests = request.request_hotels?.hotel_guests?.map((hg: any) => ({
+    id: hg.guests.id,
+    name: hg.guests.full_name,
+    document: hg.guests.document,
+  })) || [];
 
   const updateStatus = async (formData: FormData) => {
     "use server";
@@ -111,6 +118,19 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
             </button>
           </form>
         </div>
+
+        {hasHotel && (
+          <div className="mt-4">
+            <HotelPlanning
+              requestId={params.id}
+              eventName={request.event_name}
+              location={request.location}
+              startDate={request.start_date}
+              endDate={request.end_date}
+              availableGuests={availableGuests}
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div className="bg-white rounded-lg shadow-lg p-4">
