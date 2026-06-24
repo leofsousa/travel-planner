@@ -210,6 +210,7 @@ export async function getRequests() {
 }
 
 // 🔍 Buscar uma solicitação específica (para página detalhada)
+// lib/services/request-service.ts
 export async function getRequestById(id: string) {
   const supabase = createClient();
 
@@ -218,18 +219,40 @@ export async function getRequestById(id: string) {
     .select(`
       *,
       request_hotels (
-        *,
+        id,
+        enabled,
+        observations,
         hotel_guests (
-          guests (*)
+          id,
+          guests (
+            id,
+            full_name,
+            document
+          )
         )
       ),
-      request_flights (*),
+      request_flights (
+        id,
+        enabled,
+        departure_date,
+        return_date,
+        observations
+      ),
       request_cars (
-        *,
+        id,
+        enabled,
         car_rentals (
-          *,
+          id,
+          start_date,
+          end_date,
+          observations,
           rental_drivers (
-            guests (*)
+            id,
+            guests (
+              id,
+              full_name,
+              document
+            )
           )
         )
       )
@@ -241,6 +264,11 @@ export async function getRequestById(id: string) {
     console.error("Erro ao buscar solicitação:", error);
     throw new Error("Falha ao carregar solicitação");
   }
+
+  // 🔥 LOG TEMPORÁRIO - vai aparecer no console do navegador
+  console.log("🔍 DADOS COMPLETOS:", JSON.stringify(data, null, 2));
+  console.log("🔍 HOTEL:", data.request_hotels);
+  console.log("🔍 ENABLED:", data.request_hotels?.enabled);
 
   return data;
 }
@@ -260,4 +288,107 @@ export async function updateRequestStatus(id: string, status: "pending" | "in_pr
   }
 
   return { success: true };
+}
+
+export async function deleteRequest(id: string): Promise<void> {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from("requests")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Erro ao deletar solicitação:", error);
+    throw new Error(`Falha ao deletar solicitação: ${error.message}`);
+  }
+}
+// lib/services/request-service.ts (adicione no final)
+
+// Salvar planejamento do hotel
+export async function saveHotelPlanning(
+  requestId: string,
+  data: {
+    hotelName: string;
+    checkIn: string;
+    checkOut: string;
+    rooms: {
+      type: string;
+      dailyRate: number;
+      guests: string[]; // IDs dos hóspedes
+    }[];
+  }
+) {
+  const supabase = createClient();
+
+  // 1. Criar o planejamento do hotel
+  const { data: planning, error: planningError } = await supabase
+    .from("hotel_planning")
+    .insert({
+      request_id: requestId,
+      hotel_name: data.hotelName,
+      check_in: data.checkIn,
+      check_out: data.checkOut,
+    })
+    .select()
+    .single();
+
+  if (planningError) throw planningError;
+
+  // 2. Para cada quarto
+  for (const room of data.rooms) {
+    const { data: roomData, error: roomError } = await supabase
+      .from("rooms")
+      .insert({
+        hotel_planning_id: planning.id,
+        type: room.type,
+        daily_rate: room.dailyRate,
+      })
+      .select()
+      .single();
+
+    if (roomError) throw roomError;
+
+    // 3. Associar hóspedes ao quarto
+    if (room.guests.length > 0) {
+      const roomGuests = room.guests.map((guestId) => ({
+        room_id: roomData.id,
+        guest_id: guestId,
+      }));
+
+      const { error: guestsError } = await supabase
+        .from("room_guests")
+        .insert(roomGuests);
+
+      if (guestsError) throw guestsError;
+    }
+  }
+
+  return { success: true };
+}
+
+// Buscar planejamento do hotel
+export async function getHotelPlanning(requestId: string) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("hotel_planning")
+    .select(`
+      *,
+      rooms (
+        *,
+        room_guests (
+          guests (*)
+        )
+      )
+    `)
+    .eq("request_id", requestId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Erro ao buscar planejamento:", error);
+    throw new Error("Falha ao carregar planejamento do hotel");
+  }
+
+  return data;
 }

@@ -1,4 +1,4 @@
-// app/requests/[id]/components/room-modal.tsx
+// components/details/room-modal.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -40,7 +40,9 @@ export default function RoomModal({
   const [selectedGuests, setSelectedGuests] = useState<Guest[]>([]);
   const [dailyRate, setDailyRate] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState("");
 
+  // Reset do modal
   useEffect(() => {
     if (editingRoom) {
       setType(editingRoom.type);
@@ -52,29 +54,58 @@ export default function RoomModal({
       setDailyRate(0);
     }
     setSearchTerm("");
-  }, [editingRoom]);
+    setError("");
+  }, [editingRoom, isOpen]);
 
-  const filteredGuests = availableGuests.filter(
-    (guest) =>
-      !selectedGuests.some((g) => g.id === guest.id) &&
-      guest.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 🔥 CORREÇÃO 1: Filtro de hóspedes (mais robusto)
+  const filteredGuests = availableGuests.filter((guest) => {
+    // Remove hóspedes já selecionados
+    const isAlreadySelected = selectedGuests.some((g) => g.id === guest.id);
+    // Verifica se o nome contém o termo de busca (case insensitive)
+    const matchesSearch = guest.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    return !isAlreadySelected && matchesSearch;
+  });
 
   const addGuest = (guest: Guest) => {
     setSelectedGuests([...selectedGuests, guest]);
     setSearchTerm("");
+    setError("");
   };
 
   const removeGuest = (guestId: string) => {
     setSelectedGuests(selectedGuests.filter((g) => g.id !== guestId));
   };
 
+  // 🔥 CORREÇÃO 2: Cálculo do total (mais robusto)
+  const calculateTotal = () => {
+    if (nights > 0 && dailyRate > 0) {
+      return dailyRate * nights;
+    }
+    return 0;
+  };
+
+  const total = calculateTotal();
+
   const handleSubmit = () => {
-    if (!type || selectedGuests.length === 0 || dailyRate <= 0) {
-      alert("Preencha todos os campos");
+    // Validações
+    if (selectedGuests.length === 0) {
+      setError("Adicione pelo menos um hóspede ao quarto");
       return;
     }
 
+    if (dailyRate <= 0) {
+      setError("Informe o valor da diária (deve ser maior que zero)");
+      return;
+    }
+
+    if (nights === 0) {
+      setError("O número de diárias é zero. Verifique as datas do hotel.");
+      return;
+    }
+
+    setError("");
     onSave({
       type,
       guests: selectedGuests,
@@ -83,6 +114,10 @@ export default function RoomModal({
   };
 
   if (!isOpen) return null;
+
+  // 🔥 CORREÇÃO 3: Debug - ver o que está chegando
+  console.log("🔍 availableGuests no modal:", availableGuests);
+  console.log("🔍 filteredGuests:", filteredGuests);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -118,7 +153,11 @@ export default function RoomModal({
               min="0"
               step="0.01"
               value={dailyRate || ""}
-              onChange={(e) => setDailyRate(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                setDailyRate(isNaN(value) ? 0 : value);
+                setError("");
+              }}
               placeholder="Ex: 250.00"
               className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
@@ -137,20 +176,27 @@ export default function RoomModal({
                 className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
 
+              {/* 🔥 CORREÇÃO 4: Lista de sugestões mais visível */}
               {searchTerm.length > 0 && filteredGuests.length > 0 && (
-                <div className="border border-gray-200 rounded-md max-h-32 overflow-y-auto bg-white shadow-sm">
+                <div className="border border-gray-300 rounded-md max-h-40 overflow-y-auto bg-white shadow-lg">
                   {filteredGuests.map((guest) => (
                     <button
                       key={guest.id}
                       type="button"
                       onClick={() => addGuest(guest)}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors text-sm"
+                      className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
                     >
                       <div className="font-medium text-gray-900">{guest.name}</div>
                       <div className="text-gray-500 text-xs">{guest.document}</div>
                     </button>
                   ))}
                 </div>
+              )}
+
+              {searchTerm.length > 0 && filteredGuests.length === 0 && (
+                <p className="text-sm text-gray-500">
+                  Nenhum hóspede encontrado com "{searchTerm}"
+                </p>
               )}
 
               {selectedGuests.length > 0 && (
@@ -172,12 +218,46 @@ export default function RoomModal({
                   ))}
                 </div>
               )}
+
+              {availableGuests.length === 0 && (
+                <p className="text-sm text-gray-500 bg-yellow-50 p-2 rounded border border-yellow-200">
+                  ⚠️ Nenhum hóspede disponível. Adicione hóspedes na seção de hotel.
+                </p>
+              )}
             </div>
           </div>
 
-          {nights > 0 && dailyRate > 0 && (
-            <p className="text-sm text-gray-600">
-              Total do quarto: R$ {(dailyRate * nights).toFixed(2)} ({nights} diárias)
+          {/* 🔥 CORREÇÃO 5: Exibição do total sempre visível quando há dados */}
+          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Diárias:</span> {nights}
+              {nights > 0 && dailyRate > 0 && (
+                <>
+                  <br />
+                  <span className="font-medium">Total do quarto:</span>{" "}
+                  <span className="font-bold text-blue-700">
+                    R$ {total.toFixed(2)}
+                  </span>{" "}
+                  (R$ {dailyRate.toFixed(2)} × {nights} diária
+                  {nights > 1 ? "s" : ""})
+                </>
+              )}
+              {nights === 0 && (
+                <span className="text-red-500 block mt-1">
+                  ⚠️ Defina as datas do hotel para calcular as diárias.
+                </span>
+              )}
+              {dailyRate === 0 && nights > 0 && (
+                <span className="text-yellow-600 block mt-1">
+                  ⚠️ Informe o valor da diária para ver o total.
+                </span>
+              )}
+            </p>
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
+              ⚠️ {error}
             </p>
           )}
         </div>

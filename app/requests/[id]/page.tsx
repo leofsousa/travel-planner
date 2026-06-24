@@ -3,6 +3,7 @@ import { getRequestById, updateRequestStatus } from "@/lib/services/request-serv
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import HotelPlanning from "@/components/details/hotel-planning";
+import DeleteButton from "@/components/ui/delete-button";
 
 interface Params {
   id: string;
@@ -43,11 +44,13 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
     notFound();
   }
 
-  const hasHotel = request.request_hotels?.enabled || false;
+  const hotelData = request.request_hotels?.[0];
+  const hasHotel = hotelData?.enabled === true;
   const hasFlight = request.request_flights?.enabled || false;
   const hasCar = request.request_cars?.enabled || false;
 
-  const availableGuests = request.request_hotels?.hotel_guests?.map((hg: any) => ({
+  const hotelData = request.request_hotels?.[0];
+  const availableGuests = hotelData?.hotel_guests?.map((hg: any) => ({
     id: hg.guests.id,
     name: hg.guests.full_name,
     document: hg.guests.document,
@@ -63,10 +66,14 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-4">
+        <div className="mb-4 flex justify-between items-center">
           <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
             ← Voltar ao Dashboard
           </Link>
+          <DeleteButton
+            requestId={params.id}
+            requestName={request.event_name}
+          />
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
