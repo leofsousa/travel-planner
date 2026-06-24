@@ -1,6 +1,4 @@
 // app/components/dashboard/column.tsx
-"use client";
-
 import { useDroppable } from "@dnd-kit/core";
 import RequestCard from "./request-card";
 

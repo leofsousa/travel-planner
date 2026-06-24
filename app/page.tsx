@@ -19,6 +19,32 @@ interface Request {
   request_cars: any;
 }
 
+function formatDate(dateString: string | null | undefined) {
+  if (!dateString) {
+    return "Data não definida";
+  }
+
+  if (dateString.includes("/")) {
+    return dateString;
+  }
+
+  const parts = dateString.split("-");
+  if (parts.length !== 3) {
+    console.warn("Formato de data inválido:", dateString);
+    return "Data inválida";
+  }
+
+  const year = parts[0];
+  const month = parts[1];
+  const day = parts[2];
+
+  if (isNaN(Number(year)) || isNaN(Number(month)) || isNaN(Number(day))) {
+    return "Data inválida";
+  }
+
+  return `${day}/${month}/${year}`;
+}
+
 export default function DashboardPage() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +52,20 @@ export default function DashboardPage() {
   const loadRequests = async () => {
     try {
       const data = await getRequests();
+      console.log("🔍 Dados brutos:", data);
+  
+      // 🔥 LOG DETALHADO: Mostra apenas as datas de cada solicitação
+      data.forEach((r: any, index: number) => {
+        console.log(`📅 Solicitação ${index + 1}:`, {
+          id: r.id,
+          event_name: r.event_name,
+          start_date: r.start_date,
+          end_date: r.end_date,
+          tipo_start: typeof r.start_date,
+          tipo_end: typeof r.end_date,
+        });
+      });
+  
       setRequests(data);
     } catch (error) {
       console.error("Erro ao carregar solicitações:", error);
@@ -63,9 +103,29 @@ export default function DashboardPage() {
     }
   };
 
-  const pending = requests.filter((r) => r.status === "pending");
-  const inProgress = requests.filter((r) => r.status === "in_progress");
-  const completed = requests.filter((r) => r.status === "completed");
+  const pending = requests
+  .filter((r) => r.status === "pending")
+  .map((r) => ({
+    ...r,
+    start_date: formatDate(r.start_date), // ← Formata corretamente
+    end_date: formatDate(r.end_date),     // ← Formata corretamente
+  }));
+
+  const inProgress = requests
+    .filter((r) => r.status === "in_progress")
+    .map((r) => ({
+      ...r,
+      start_date: formatDate(r.start_date),
+      end_date: formatDate(r.end_date),
+    }));
+
+  const completed = requests
+    .filter((r) => r.status === "completed")
+    .map((r) => ({
+      ...r,
+      start_date: formatDate(r.start_date),
+      end_date: formatDate(r.end_date),
+    }));
 
   if (loading) {
     return (

@@ -19,6 +19,30 @@ interface RequestCardProps {
   };
 }
 
+// 🔥 CORREÇÃO: Função de formatação robusta
+function formatDate(dateString: string | null | undefined) {
+  if (!dateString) return "Data não informada";
+  if (dateString === "invalid") return "Data inválida";
+  
+  // Se já estiver no formato DD/MM/YYYY, retorna
+  if (dateString.includes("/")) return dateString;
+  
+  // Tenta converter do formato ISO (YYYY-MM-DD)
+  const parts = dateString.split("-");
+  if (parts.length === 3) {
+    const year = parts[0];
+    const month = parts[1];
+    const day = parts[2];
+    
+    // Verifica se são números válidos
+    if (!isNaN(Number(year)) && !isNaN(Number(month)) && !isNaN(Number(day))) {
+      return `${day}/${month}/${year}`;
+    }
+  }
+  
+  return dateString; // Retorna a string original se não conseguir formatar
+}
+
 function ServiceBadge({ enabled, label }: { enabled: boolean; label: string }) {
   if (!enabled) return null;
   return (
@@ -45,9 +69,9 @@ export default function RequestCard({ request }: RequestCardProps) {
   const hasFlight = request.request_flights?.enabled || false;
   const hasCar = request.request_cars?.enabled || false;
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("pt-BR");
-  };
+  // 🔥 CORREÇÃO: Formata as datas antes de exibir
+  const startDate = formatDate(request.start_date);
+  const endDate = formatDate(request.end_date);
 
   return (
     <div
@@ -61,7 +85,6 @@ export default function RequestCard({ request }: RequestCardProps) {
         <h3 className="text-lg font-semibold text-gray-900 truncate">
           {request.event_name}
         </h3>
-        {/* Ícone de arrastar */}
         <div
           {...attributes}
           {...listeners}
@@ -81,7 +104,7 @@ export default function RequestCard({ request }: RequestCardProps) {
 
       <p className="text-sm text-gray-600 mb-1">📍 {request.location}</p>
       <p className="text-sm text-gray-500">
-        📅 {formatDate(request.start_date)} - {formatDate(request.end_date)}
+        📅 {startDate} - {endDate}
       </p>
 
       <div className="flex flex-wrap gap-1 mt-3">

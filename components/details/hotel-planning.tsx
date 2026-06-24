@@ -1,10 +1,11 @@
-// app/requests/[id]/components/hotel-planning.tsx
+// components/details/hotel-planning.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import RoomCard from "./room-card";
 import RoomModal from "./room-modal";
 import EmailGenerator from "./email-generator";
+import { saveHotelPlanning, getHotelPlanning } from "@/lib/services/request-service";
 
 interface Guest {
   id: string;
@@ -27,12 +28,6 @@ interface HotelPlanningProps {
   startDate: string;
   endDate: string;
   availableGuests: Guest[];
-  initialHotel?: {
-    name: string;
-    checkIn: string;
-    checkOut: string;
-    rooms: Room[];
-  };
 }
 
 export default function HotelPlanning({
@@ -42,14 +37,14 @@ export default function HotelPlanning({
   startDate,
   endDate,
   availableGuests,
-  initialHotel,
 }: HotelPlanningProps) {
-  const [hotelName, setHotelName] = useState(initialHotel?.name || "");
-  const [checkIn, setCheckIn] = useState(initialHotel?.checkIn || startDate);
-  const [checkOut, setCheckOut] = useState(initialHotel?.checkOut || endDate);
-  const [rooms, setRooms] = useState<Room[]>(initialHotel?.rooms || []);
+  const [hotelName, setHotelName] = useState("");
+  const [checkIn, setCheckIn] = useState(startDate);
+  const [checkOut, setCheckOut] = useState(endDate);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const calculateNights = () => {
     if (!checkIn || !checkOut) return 0;
@@ -60,6 +55,66 @@ export default function HotelPlanning({
   };
 
   const nights = calculateNights();
+
+  // Carregar planejamento salvo
+  useEffect(() => {
+    async function loadPlanning() {
+      try {
+        setIsLoading(true);
+        const data = await getHotelPlanning(requestId);
+        if (data) {
+          setHotelName(data.hotel_name || "");
+          setCheckIn(data.check_in || startDate);
+          setCheckOut(data.check_out || endDate);
+          
+          if (data.rooms && data.rooms.length > 0) {
+            const loadedRooms = data.rooms.map((room: any) => ({
+              id: room.id,
+              type: room.type,
+              dailyRate: room.daily_rate,
+              guests: room.room_guests?.map((rg: any) => ({
+                id: rg.guests.id,
+                name: rg.guests.full_name,
+                document: rg.guests.document,
+              })) || [],
+              total: room.daily_rate * nights,
+            }));
+            setRooms(loadedRooms);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar planejamento:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadPlanning();
+  }, [requestId, startDate, endDate]);
+
+  // Salvar automaticamente quando houver mudanças
+  useEffect(() => {
+    // Não salvar na primeira renderização ou se estiver carregando
+    if (isLoading) return;
+
+    const saveTimeout = setTimeout(async () => {
+      try {
+        await saveHotelPlanning(requestId, {
+          hotelName,
+          checkIn,
+          checkOut,
+          rooms: rooms.map((room) => ({
+            type: room.type,
+            dailyRate: room.dailyRate,
+            guests: room.guests.map((g) => g.id),
+          })),
+        });
+      } catch (error) {
+        console.error("Erro ao salvar planejamento:", error);
+      }
+    }, 500); // Debounce de 500ms
+
+    return () => clearTimeout(saveTimeout);
+  }, [hotelName, checkIn, checkOut, rooms, requestId, isLoading]);
 
   const addRoom = (roomData: Omit<Room, "id" | "total">) => {
     const newRoom: Room = {
@@ -112,6 +167,14 @@ export default function HotelPlanning({
     triplo: "Triplo",
     quadruplo: "Quadruplo",
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <p className="text-gray-500 text-center">Carregando planejamento...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">

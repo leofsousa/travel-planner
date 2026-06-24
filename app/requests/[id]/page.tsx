@@ -49,12 +49,14 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
   const hasFlight = request.request_flights?.enabled || false;
   const hasCar = request.request_cars?.enabled || false;
 
-  const hotelData = request.request_hotels?.[0];
   const availableGuests = hotelData?.hotel_guests?.map((hg: any) => ({
     id: hg.guests.id,
     name: hg.guests.full_name,
     document: hg.guests.document,
   })) || [];
+
+  console.log("🔍 Hóspedes disponíveis:", availableGuests);
+  console.log("🔍 hotelData:", hotelData);
 
   const updateStatus = async (formData: FormData) => {
     "use server";
