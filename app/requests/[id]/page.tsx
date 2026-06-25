@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import HotelPlanning from "@/components/details/hotel-planning";
 import DeleteButton from "@/components/ui/delete-button";
+import QuotationSection from "@/components/quotations/quotation-section";
 
 interface Params {
   id: string;
@@ -29,8 +30,13 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("pt-BR");
+function formatDate(dateString: string) {
+  if (!dateString) return "Data não informada";
+  const parts = dateString.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateString;
 }
 
 function formatDateTime(date: string) {
@@ -55,9 +61,6 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
     document: hg.guests.document,
   })) || [];
 
-  console.log("🔍 Hóspedes disponíveis:", availableGuests);
-  console.log("🔍 hotelData:", hotelData);
-
   const updateStatus = async (formData: FormData) => {
     "use server";
     const status = formData.get("status") as "pending" | "in_progress" | "completed";
@@ -72,9 +75,9 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
           <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
             ← Voltar ao Dashboard
           </Link>
-          <DeleteButton
-            requestId={params.id}
-            requestName={request.event_name}
+          <DeleteButton 
+            requestId={params.id} 
+            requestName={request.event_name} 
           />
         </div>
 
@@ -160,16 +163,16 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
               {hasHotel && request.request_hotels && (
                 <div className="border-t border-gray-100 pt-2">
                   <p className="font-medium text-gray-700">🏨 Hotel</p>
-                  {request.request_hotels.observations && (
+                  {request.request_hotels[0]?.observations && (
                     <p className="text-gray-600 text-xs mt-1">
-                      Obs: {request.request_hotels.observations}
+                      Obs: {request.request_hotels[0].observations}
                     </p>
                   )}
-                  {request.request_hotels.hotel_guests?.length > 0 && (
+                  {request.request_hotels[0]?.hotel_guests?.length > 0 && (
                     <div className="mt-1">
                       <p className="text-gray-500 text-xs">Hóspedes:</p>
                       <ul className="list-disc list-inside text-xs text-gray-600">
-                        {request.request_hotels.hotel_guests.map((hg: any) => (
+                        {request.request_hotels[0].hotel_guests.map((hg: any) => (
                           <li key={hg.id}>
                             {hg.guests.full_name} - {hg.guests.document}
                           </li>
@@ -269,6 +272,29 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
                 <label className="text-gray-600">Aprovação do gestor obtida</label>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <QuotationSection
+            requestId={params.id}
+            serviceType="hotel"
+            title="Cotações de Hotel"
+            icon="🏨"
+          />
+          <QuotationSection
+            requestId={params.id}
+            serviceType="flight"
+            title="Cotações de Passagem"
+            icon="✈️"
+          />
+          <div className="md:col-span-2">
+            <QuotationSection
+              requestId={params.id}
+              serviceType="car"
+              title="Cotações de Carro"
+              icon="🚗"
+            />
           </div>
         </div>
       </div>

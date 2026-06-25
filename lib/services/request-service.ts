@@ -397,3 +397,114 @@ export async function getHotelPlanning(requestId: string) {
 
   return data;
 }
+
+// ============================================
+// FUNÇÕES DE COTAÇÕES
+// ============================================
+
+interface QuotationData {
+  requestId: string;
+  serviceType: 'hotel' | 'flight' | 'car';
+  supplier: string;
+  description: string;
+  totalAmount: number;
+  currency?: string;
+  metadata?: any;
+}
+
+export async function addQuotation(data: QuotationData) {
+  const supabase = createClient();
+
+  const { data: quotation, error } = await supabase
+    .from("quotations")
+    .insert({
+      request_id: data.requestId,
+      service_type: data.serviceType,
+      supplier: data.supplier,
+      description: data.description,
+      total_amount: data.totalAmount,
+      currency: data.currency || 'BRL',
+      metadata: data.metadata || {},
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao adicionar cotação:", error);
+    throw new Error(`Falha ao adicionar cotação: ${error.message}`);
+  }
+
+  return quotation;
+}
+
+export async function getQuotations(requestId: string) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("quotations")
+    .select("*")
+    .eq("request_id", requestId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Erro ao buscar cotações:", error);
+    throw new Error(`Falha ao carregar cotações: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function updateQuotationSelection(id: string, isSelected: boolean) {
+  const supabase = createClient();
+
+  // Se estiver selecionando, desmarca todas as outras do mesmo tipo
+  if (isSelected) {
+    // Primeiro, busca a cotação para saber o tipo de serviço
+    const { data: quotation, error: fetchError } = await supabase
+      .from("quotations")
+      .select("request_id, service_type")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Desmarca todas as outras do mesmo serviço
+    const { error: updateError } = await supabase
+      .from("quotations")
+      .update({ is_selected: false })
+      .eq("request_id", quotation.request_id)
+      .eq("service_type", quotation.service_type)
+      .neq("id", id);
+
+    if (updateError) throw updateError;
+  }
+
+  // Seleciona/desmarca a cotação atual
+  const { error } = await supabase
+    .from("quotations")
+    .update({ is_selected })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Erro ao atualizar seleção:", error);
+    throw new Error(`Falha ao atualizar seleção: ${error.message}`);
+  }
+
+  return { success: true };
+}
+
+export async function deleteQuotation(id: string) {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from("quotations")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Erro ao deletar cotação:", error);
+    throw new Error(`Falha ao deletar cotação: ${error.message}`);
+  }
+
+  return { success: true };
+}
