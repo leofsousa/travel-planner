@@ -1,10 +1,10 @@
-// app/guests/components/guest-table.tsx
 "use client";
 
 import { useState } from "react";
 import type { Guest } from "@/types/guest";
 import { deleteGuest, clearGuestCache } from "@/lib/services/guest-service";
 import GuestModal from "./guest-modal";
+import DocumentDisplay from "@/components/ui/document-display";
 
 interface GuestTableProps {
   initialGuests: Guest[];
@@ -17,14 +17,12 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  // Filtra hóspedes
   const filteredGuests = guests.filter(
     (guest) =>
       guest.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       guest.document.includes(searchTerm)
   );
 
-  // Ordena por nome
   const sortedGuests = [...filteredGuests].sort((a, b) =>
     a.full_name.localeCompare(b.full_name)
   );
@@ -51,10 +49,8 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
 
   const handleGuestSaved = (savedGuest: Guest) => {
     if (editingGuest) {
-      // Edição
       setGuests(guests.map((g) => (g.id === savedGuest.id ? savedGuest : g)));
     } else {
-      // Criação
       setGuests([...guests, savedGuest]);
     }
     handleModalClose();
@@ -62,7 +58,6 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
 
   return (
     <div>
-      {/* Barra de busca e botão */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1">
           <input
@@ -81,7 +76,6 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
         </button>
       </div>
 
-      {/* Tabela */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -103,7 +97,9 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
               sortedGuests.map((guest) => (
                 <tr key={guest.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-3 text-gray-900">{guest.full_name}</td>
-                  <td className="px-4 py-3 text-gray-600">{guest.document}</td>
+                  <td className="px-4 py-3">
+                    <DocumentDisplay document={guest.document} />
+                  </td>
                   <td className="px-4 py-3 text-gray-500 text-sm">
                     {new Date(guest.created_at).toLocaleDateString("pt-BR")}
                   </td>
@@ -134,7 +130,6 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
         </table>
       </div>
 
-      {/* Modal de criação/edição */}
       {isModalOpen && (
         <GuestModal
           guest={editingGuest}

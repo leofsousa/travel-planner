@@ -1,13 +1,14 @@
-import './globals.css';
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import Sidebar from '@/components/layout/sidebar';
+// app/layout.tsx
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import Header from "@/components/layout/header";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Travel Planner',
-  description: 'Gestão de solicitação de viagens',
+  title: "Travel Planner",
+  description: "Sistema de planejamento de viagens corporativas",
 };
 
 export default function RootLayout({
@@ -16,12 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-br">
-      <body className={inter.className}>
-        <div className="flex h-screen text-black">
-          <Sidebar />
-          <main className="flex-1 p-6 overflow-auto">{children}</main>
-        </div>
+    <html lang="pt-BR">
+      <body className={`${inter.className} min-h-screen`}>
+        <Header>
+          {children}
+        </Header>
       </body>
     </html>
   );
