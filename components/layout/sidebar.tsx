@@ -13,9 +13,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   const menuItems = [
-    { href: "/", label: "📊 Dashboard", icon: "📊" },
-    { href: "/requests/new", label: "➕ Nova Solicitação", icon: "➕" },
-    { href: "/guests", label: "👥 Hóspedes", icon: "👥" },
+    { href: "/", label: "Dashboard", icon: "📊" },
+    { href: "/requests/new", label: "Nova Solicitação", icon: "➕" },
+    { href: "/guests", label: "Hóspedes", icon: "👥" },
   ];
 
   const isActive = (href: string) => pathname === href;

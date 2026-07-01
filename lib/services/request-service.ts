@@ -43,10 +43,12 @@ interface RequestData {
   };
 }
 
+// lib/services/request-service.ts
 export async function createRequest(data: RequestData) {
   const supabase = createClient();
 
   try {
+    // 1. Criar a solicitação principal
     const { data: request, error: requestError } = await supabase
       .from("requests")
       .insert({
@@ -59,10 +61,14 @@ export async function createRequest(data: RequestData) {
       .select()
       .single();
 
-    if (requestError) throw requestError;
+    if (requestError) {
+      console.error("Erro ao criar solicitação:", requestError);
+      throw requestError;
+    }
 
     const requestId = request.id;
 
+    // 2. HOTEL
     if (data.hotel.enabled) {
       const { data: hotel, error: hotelError } = await supabase
         .from("request_hotels")
@@ -74,7 +80,10 @@ export async function createRequest(data: RequestData) {
         .select()
         .single();
 
-      if (hotelError) throw hotelError;
+      if (hotelError) {
+        console.error("Erro ao salvar hotel:", hotelError);
+        throw hotelError;
+      }
 
       if (data.hotel.guests.length > 0) {
         const hotelGuests = data.hotel.guests.map((guest) => ({
@@ -86,12 +95,19 @@ export async function createRequest(data: RequestData) {
           .from("hotel_guests")
           .insert(hotelGuests);
 
-        if (hotelGuestsError) throw hotelGuestsError;
+        if (hotelGuestsError) {
+          console.error("Erro ao salvar hóspedes do hotel:", hotelGuestsError);
+          throw hotelGuestsError;
+        }
       }
     }
 
+    // 3. ✈️ PASSAGEM
     if (data.flight.enabled) {
-      const { error: flightError } = await supabase
+      console.log("📝 Salvando passagem para request:", requestId);
+      console.log("Dados da passagem:", data.flight);
+
+      const { data: flight, error: flightError } = await supabase
         .from("request_flights")
         .insert({
           request_id: requestId,
@@ -99,12 +115,23 @@ export async function createRequest(data: RequestData) {
           departure_date: data.flight.departureDate || null,
           return_date: data.flight.returnDate || null,
           observations: data.flight.observations,
-        });
+        })
+        .select();
 
-      if (flightError) throw flightError;
+      if (flightError) {
+        console.error("❌ Erro ao salvar passagem:", flightError);
+        throw flightError;
+      }
+
+      console.log("✅ Passagem salva com sucesso:", flight);
     }
 
+    // 4. 🚗 CARRO
     if (data.car.enabled && data.car.rentals.length > 0) {
+      console.log("📝 Salvando carro para request:", requestId);
+      console.log("Dados do carro:", data.car);
+
+      // 4.1 Criar o cabeçalho de locação
       const { data: carHeader, error: carHeaderError } = await supabase
         .from("request_cars")
         .insert({
@@ -114,9 +141,17 @@ export async function createRequest(data: RequestData) {
         .select()
         .single();
 
-      if (carHeaderError) throw carHeaderError;
+      if (carHeaderError) {
+        console.error("❌ Erro ao criar cabeçalho do carro:", carHeaderError);
+        throw carHeaderError;
+      }
 
+      console.log("✅ Cabeçalho do carro criado:", carHeader);
+
+      // 4.2 Para cada locação
       for (const rental of data.car.rentals) {
+        console.log("📝 Salvando locação:", rental);
+
         const { data: carRental, error: rentalError } = await supabase
           .from("car_rentals")
           .insert({
@@ -128,8 +163,14 @@ export async function createRequest(data: RequestData) {
           .select()
           .single();
 
-        if (rentalError) throw rentalError;
+        if (rentalError) {
+          console.error("❌ Erro ao salvar locação:", rentalError);
+          throw rentalError;
+        }
 
+        console.log("✅ Locação salva:", carRental);
+
+        // 4.3 Adicionar condutores
         if (rental.drivers.length > 0) {
           const rentalDrivers = rental.drivers.map((driver) => ({
             car_rental_id: carRental.id,
@@ -140,20 +181,25 @@ export async function createRequest(data: RequestData) {
             .from("rental_drivers")
             .insert(rentalDrivers);
 
-          if (driversError) throw driversError;
+          if (driversError) {
+            console.error("❌ Erro ao salvar condutores:", driversError);
+            throw driversError;
+          }
+
+          console.log("✅ Condutores salvos:", rentalDrivers);
         }
       }
     }
 
+    console.log("✅ Solicitação criada com sucesso! ID:", requestId);
     return { success: true, requestId };
   } catch (error) {
-    console.error("Erro ao criar solicitação:", error);
+    console.error("❌ Erro ao criar solicitação:", error);
     throw new Error(
       error instanceof Error ? error.message : "Falha ao criar solicitação"
     );
   }
 }
-
 export async function getRequests() {
   const supabase = createClient();
 
@@ -191,6 +237,7 @@ export async function getRequests() {
   return data;
 }
 
+// lib/services/request-service.ts
 export async function getRequestById(id: string) {
   const supabase = createClient();
 
@@ -507,4 +554,63 @@ export async function deleteQuotation(id: string) {
   }
 
   return { success: true };
+}
+export async function saveFlightPlanning(
+  requestId: string,
+  data: { legs: any[] }
+) {
+  const supabase = createClient();
+
+  const { data: existing, error: searchError } = await supabase
+    .from("flight_planning")
+    .select("id")
+    .eq("request_id", requestId)
+    .maybeSingle();
+
+  if (searchError) throw searchError;
+
+  let planningId: string;
+
+  if (existing) {
+    const { data: updated, error: updateError } = await supabase
+      .from("flight_planning")
+      .update({ legs: data.legs, updated_at: new Date().toISOString() })
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+    planningId = updated.id;
+  } else {
+    const { data: newPlanning, error: insertError } = await supabase
+      .from("flight_planning")
+      .insert({
+        request_id: requestId,
+        legs: data.legs,
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+    planningId = newPlanning.id;
+  }
+
+  return { success: true, planningId };
+}
+
+export async function getFlightPlanning(requestId: string) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("flight_planning")
+    .select("*")
+    .eq("request_id", requestId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Erro ao buscar planejamento de voo:", error);
+    throw new Error("Falha ao carregar planejamento de voo");
+  }
+
+  return data;
 }

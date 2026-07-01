@@ -3,6 +3,8 @@ import { getRequestById, updateRequestStatus } from "@/lib/services/request-serv
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import HotelPlanning from "@/components/details/hotel-planning";
+import FlightPlanning from "@/components/details/flight-planning";
+import CarPlanning from "@/components/details/car-planning";
 import DeleteButton from "@/components/ui/delete-button";
 import QuotationSection from "@/components/quotations/quotation-section";
 
@@ -44,6 +46,7 @@ function formatDateTime(date: string) {
 }
 
 export default async function RequestDetailPage({ params }: { params: Params }) {
+  
   const request = await getRequestById(params.id);
 
   if (!request) {
@@ -60,7 +63,9 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
     name: hg.guests.full_name,
     document: hg.guests.document,
   })) || [];
-
+  console.log("🔍 Dados completos:", request);
+console.log("🔍 request_flights:", request.request_flights);
+console.log("🔍 request_cars:", request.request_cars);
   const updateStatus = async (formData: FormData) => {
     "use server";
     const status = formData.get("status") as "pending" | "in_progress" | "completed";
@@ -131,6 +136,11 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
           </form>
         </div>
 
+        {/* ============================================ */}
+        {/* SEÇÕES DE PLANEJAMENTO */}
+        {/* ============================================ */}
+        
+        {/* 🏨 HOTEL */}
         {hasHotel && (
           <div className="mt-4">
             <HotelPlanning
@@ -144,6 +154,33 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
           </div>
         )}
 
+        {/* ✈️ PASSAGEM */}
+        {hasFlight && (
+          <div className="mt-4">
+            <FlightPlanning
+              requestId={params.id}
+              eventName={request.event_name}
+              location={request.location}
+              startDate={request.start_date}
+              endDate={request.end_date}
+            />
+          </div>
+        )}
+
+        {/* 🚗 CARRO */}
+        {hasCar && (
+          <div className="mt-4">
+            <CarPlanning
+              requestId={params.id}
+              startDate={request.start_date}
+              endDate={request.end_date}
+            />
+          </div>
+        )}
+
+        {/* ============================================ */}
+        {/* INFORMAÇÕES DA SOLICITAÇÃO E TAREFAS */}
+        {/* ============================================ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div className="bg-white rounded-lg shadow-lg p-4">
             <h2 className="font-semibold text-gray-900 mb-2">📋 Informações da Solicitação</h2>
@@ -275,6 +312,9 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
           </div>
         </div>
 
+        {/* ============================================ */}
+        {/* COTAÇÕES */}
+        {/* ============================================ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <QuotationSection
             requestId={params.id}
