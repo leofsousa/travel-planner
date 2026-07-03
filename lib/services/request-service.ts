@@ -614,3 +614,88 @@ export async function getFlightPlanning(requestId: string) {
 
   return data;
 }
+// lib/services/request-service.ts
+
+// 🔍 Buscar tasks de uma solicitação
+export async function getTasks(requestId: string) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("requests")
+    .select("tasks")
+    .eq("id", requestId)
+    .single();
+
+  if (error) {
+    console.error("Erro ao buscar tasks:", error);
+    throw new Error("Falha ao carregar tasks");
+  }
+
+  return data?.tasks || [];
+}
+
+// 🔄 Alternar status de uma task
+export async function toggleTask(requestId: string, taskKey: string) {
+  const supabase = createClient();
+
+  // 1. Buscar a solicitação
+  const { data: request, error: fetchError } = await supabase
+    .from("requests")
+    .select("tasks")
+    .eq("id", requestId)
+    .single();
+
+  if (fetchError) {
+    console.error("Erro ao buscar solicitação:", fetchError);
+    throw new Error("Falha ao buscar solicitação");
+  }
+
+  // 2. Atualizar a task específica
+  const tasks = request.tasks || [];
+  const updatedTasks = tasks.map((task: any) =>
+    task.key === taskKey
+      ? { ...task, completed: !task.completed }
+      : task
+  );
+
+  // 3. Salvar de volta
+  const { error: updateError } = await supabase
+    .from("requests")
+    .update({ tasks: updatedTasks })
+    .eq("id", requestId);
+
+  if (updateError) {
+    console.error("Erro ao atualizar task:", updateError);
+    throw new Error("Falha ao atualizar task");
+  }
+
+  return { success: true, tasks: updatedTasks };
+}
+
+// 🔄 Reiniciar todas as tasks
+export async function resetTasks(requestId: string) {
+  const supabase = createClient();
+
+  const defaultTasks = [
+    { key: "hotel_reservation", label: "Reserva de hotel concluída", completed: false },
+    { key: "flight_issued", label: "Passagem emitida", completed: false },
+    { key: "car_reserved", label: "Carro reservado", completed: false },
+    { key: "documents_sent", label: "Documentos enviados ao viajante", completed: false },
+    { key: "hotel_quotation", label: "Cotação de hotel realizada", completed: false },
+    { key: "flight_quotation", label: "Cotação de passagem realizada", completed: false },
+    { key: "car_quotation", label: "Cotação de carro realizada", completed: false },
+    { key: "manager_approval", label: "Aprovação do gestor obtida", completed: false },
+  ];
+
+  const { error } = await supabase
+    .from("requests")
+    .update({ tasks: defaultTasks })
+    .eq("id", requestId);
+
+  if (error) {
+    console.error("Erro ao reiniciar tasks:", error);
+    throw new Error("Falha ao reiniciar tasks");
+  }
+
+  return { success: true, tasks: defaultTasks };
+}
