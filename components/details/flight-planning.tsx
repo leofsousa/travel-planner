@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getFlightPlanning, saveFlightPlanning } from "@/lib/services/request-service";
+import FlightLegModal from "@/components/details/flight-leg-modal";
+import FlightLegCard from "@/components/details/flight-leg-card";
 
 interface FlightPlanningProps {
   requestId: string;

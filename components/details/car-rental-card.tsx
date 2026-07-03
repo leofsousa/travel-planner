@@ -1,4 +1,3 @@
-// components/details/car-rental-card.tsx
 "use client";
 
 interface CarRental {

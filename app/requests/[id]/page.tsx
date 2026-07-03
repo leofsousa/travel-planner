@@ -54,9 +54,12 @@ export default async function RequestDetailPage({ params }: { params: Params }) 
   }
 
   const hotelData = request.request_hotels?.[0];
+  const flightData = request.request_flights?.[0];
+  const carData = request.request_cars?.[0];
+
   const hasHotel = hotelData?.enabled === true;
-  const hasFlight = request.request_flights?.enabled || false;
-  const hasCar = request.request_cars?.enabled || false;
+  const hasFlight = flightData?.enabled === true;
+  const hasCar = carData?.enabled === true;
 
   const availableGuests = hotelData?.hotel_guests?.map((hg: any) => ({
     id: hg.guests.id,
