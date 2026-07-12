@@ -1,4 +1,4 @@
-// components/details/room-modal.tsx
+// components/details/room-modal.tsx (versão com períodos)
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,11 +9,17 @@ interface Guest {
   document: string;
 }
 
+interface RatePeriod {
+  startDate: string;
+  endDate: string;
+  dailyRate: number;
+}
+
 interface Room {
   id: string;
   type: "individual" | "duplo" | "triplo" | "quadruplo";
   guests: Guest[];
-  dailyRate: number;
+  periods: RatePeriod[];
   total: number;
 }
 
@@ -25,6 +31,8 @@ interface RoomModalProps {
   editingRoom: Room | null;
   nights: number;
   roomTypes: Record<string, string>;
+  startDate: string;
+  endDate: string;
 }
 
 export default function RoomModal({
@@ -35,38 +43,65 @@ export default function RoomModal({
   editingRoom,
   nights,
   roomTypes,
+  startDate,
+  endDate,
 }: RoomModalProps) {
   const [type, setType] = useState<Room["type"]>("individual");
   const [selectedGuests, setSelectedGuests] = useState<Guest[]>([]);
-  const [dailyRate, setDailyRate] = useState<number>(0);
+  const [periods, setPeriods] = useState<RatePeriod[]>([
+    { startDate: startDate, endDate: endDate, dailyRate: 0 }
+  ]);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
 
-  // Reset do modal
   useEffect(() => {
     if (editingRoom) {
       setType(editingRoom.type);
       setSelectedGuests(editingRoom.guests);
-      setDailyRate(editingRoom.dailyRate);
+      setPeriods(editingRoom.periods);
     } else {
       setType("individual");
       setSelectedGuests([]);
-      setDailyRate(0);
+      setPeriods([{ startDate: startDate, endDate: endDate, dailyRate: 0 }]);
     }
     setSearchTerm("");
     setError("");
-  }, [editingRoom, isOpen]);
+  }, [editingRoom, isOpen, startDate, endDate]);
 
-  // 🔥 CORREÇÃO 1: Filtro de hóspedes (mais robusto)
-  const filteredGuests = availableGuests.filter((guest) => {
-    // Remove hóspedes já selecionados
-    const isAlreadySelected = selectedGuests.some((g) => g.id === guest.id);
-    // Verifica se o nome contém o termo de busca (case insensitive)
-    const matchesSearch = guest.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    return !isAlreadySelected && matchesSearch;
-  });
+  const addPeriod = () => {
+    const lastPeriod = periods[periods.length - 1];
+    const newStart = lastPeriod.endDate;
+    setPeriods([
+      ...periods,
+      { startDate: newStart, endDate: endDate, dailyRate: 0 }
+    ]);
+  };
+
+  const removePeriod = (index: number) => {
+    if (periods.length <= 1) return;
+    setPeriods(periods.filter((_, i) => i !== index));
+  };
+
+  const updatePeriod = (index: number, field: keyof RatePeriod, value: string | number) => {
+    const updated = [...periods];
+    updated[index] = { ...updated[index], [field]: value };
+    setPeriods(updated);
+  };
+
+  const calculateTotal = () => {
+    return periods.reduce((sum, period) => {
+      const start = new Date(period.startDate);
+      const end = new Date(period.endDate);
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      return sum + (days * period.dailyRate);
+    }, 0);
+  };
+
+  const filteredGuests = availableGuests.filter(
+    (guest) =>
+      !selectedGuests.some((g) => g.id === guest.id) &&
+      guest.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const addGuest = (guest: Guest) => {
     setSelectedGuests([...selectedGuests, guest]);
@@ -78,30 +113,14 @@ export default function RoomModal({
     setSelectedGuests(selectedGuests.filter((g) => g.id !== guestId));
   };
 
-  // 🔥 CORREÇÃO 2: Cálculo do total (mais robusto)
-  const calculateTotal = () => {
-    if (nights > 0 && dailyRate > 0) {
-      return dailyRate * nights;
-    }
-    return 0;
-  };
-
-  const total = calculateTotal();
-
   const handleSubmit = () => {
-    // Validações
     if (selectedGuests.length === 0) {
       setError("Adicione pelo menos um hóspede ao quarto");
       return;
     }
 
-    if (dailyRate <= 0) {
-      setError("Informe o valor da diária (deve ser maior que zero)");
-      return;
-    }
-
-    if (nights === 0) {
-      setError("O número de diárias é zero. Verifique as datas do hotel.");
+    if (periods.some(p => p.dailyRate <= 0)) {
+      setError("Informe o valor da diária para todos os períodos");
       return;
     }
 
@@ -109,24 +128,23 @@ export default function RoomModal({
     onSave({
       type,
       guests: selectedGuests,
-      dailyRate,
+      periods,
     });
   };
 
   if (!isOpen) return null;
 
-  // 🔥 CORREÇÃO 3: Debug - ver o que está chegando
-  console.log("🔍 availableGuests no modal:", availableGuests);
-  console.log("🔍 filteredGuests:", filteredGuests);
+  const total = calculateTotal();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-lg w-full p-6 shadow-xl">
+      <div className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
           {editingRoom ? "✏️ Editar Quarto" : "➕ Adicionar Quarto"}
         </h2>
 
         <div className="space-y-4">
+          {/* Tipo de Quarto */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tipo de Quarto
@@ -134,7 +152,7 @@ export default function RoomModal({
             <select
               value={type}
               onChange={(e) => setType(e.target.value as Room["type"])}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             >
               {Object.entries(roomTypes).map(([key, label]) => (
                 <option key={key} value={key}>
@@ -144,25 +162,83 @@ export default function RoomModal({
             </select>
           </div>
 
+          {/* Períodos */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Valor da Diária (R$)
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={dailyRate || ""}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                setDailyRate(isNaN(value) ? 0 : value);
-                setError("");
-              }}
-              placeholder="Ex: 250.00"
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Períodos e Valores
+              </label>
+              <button
+                type="button"
+                onClick={addPeriod}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                + Adicionar período
+              </button>
+            </div>
+            <div className="space-y-3">
+              {periods.map((period, index) => {
+                const start = new Date(period.startDate);
+                const end = new Date(period.endDate);
+                const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+                return (
+                  <div key={index} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    <div className="flex justify-between items-start">
+                      <div className="grid grid-cols-2 gap-2 flex-1">
+                        <div>
+                          <label className="block text-xs text-gray-500">Início</label>
+                          <input
+                            type="date"
+                            value={period.startDate}
+                            onChange={(e) => updatePeriod(index, "startDate", e.target.value)}
+                            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500">Fim</label>
+                          <input
+                            type="date"
+                            value={period.endDate}
+                            onChange={(e) => updatePeriod(index, "endDate", e.target.value)}
+                            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-gray-500">Diária (R$)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={period.dailyRate || ""}
+                            onChange={(e) => updatePeriod(index, "dailyRate", parseFloat(e.target.value) || 0)}
+                            placeholder="Ex: 250.00"
+                            className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                          />
+                        </div>
+                      </div>
+                      {periods.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removePeriod(index)}
+                          className="text-red-500 hover:text-red-700 text-sm ml-2 mt-1"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    {days > 0 && period.dailyRate > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Total do período: R$ {(days * period.dailyRate).toFixed(2)} ({days} diárias)
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
+          {/* Hóspedes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Hóspedes ({selectedGuests.length})
@@ -173,30 +249,23 @@ export default function RoomModal({
                 placeholder="Buscar hóspede..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
               />
 
-              {/* 🔥 CORREÇÃO 4: Lista de sugestões mais visível */}
               {searchTerm.length > 0 && filteredGuests.length > 0 && (
-                <div className="border border-gray-300 rounded-md max-h-40 overflow-y-auto bg-white shadow-lg">
+                <div className="border border-gray-200 rounded-md max-h-32 overflow-y-auto bg-white shadow-sm">
                   {filteredGuests.map((guest) => (
                     <button
                       key={guest.id}
                       type="button"
                       onClick={() => addGuest(guest)}
-                      className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
+                      className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors text-sm"
                     >
                       <div className="font-medium text-gray-900">{guest.name}</div>
                       <div className="text-gray-500 text-xs">{guest.document}</div>
                     </button>
                   ))}
                 </div>
-              )}
-
-              {searchTerm.length > 0 && filteredGuests.length === 0 && (
-                <p className="text-sm text-gray-500">
-                  Nenhum hóspede encontrado com "{searchTerm}"
-                </p>
               )}
 
               {selectedGuests.length > 0 && (
@@ -218,42 +287,20 @@ export default function RoomModal({
                   ))}
                 </div>
               )}
-
-              {availableGuests.length === 0 && (
-                <p className="text-sm text-gray-500 bg-yellow-50 p-2 rounded border border-yellow-200">
-                  ⚠️ Nenhum hóspede disponível. Adicione hóspedes na seção de hotel.
-                </p>
-              )}
             </div>
           </div>
 
-          {/* 🔥 CORREÇÃO 5: Exibição do total sempre visível quando há dados */}
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-            <p className="text-sm text-gray-700">
-              <span className="font-medium">Diárias:</span> {nights}
-              {nights > 0 && dailyRate > 0 && (
-                <>
-                  <br />
-                  <span className="font-medium">Total do quarto:</span>{" "}
-                  <span className="font-bold text-blue-700">
-                    R$ {total.toFixed(2)}
-                  </span>{" "}
-                  (R$ {dailyRate.toFixed(2)} × {nights} diária
-                  {nights > 1 ? "s" : ""})
-                </>
-              )}
-              {nights === 0 && (
-                <span className="text-red-500 block mt-1">
-                  ⚠️ Defina as datas do hotel para calcular as diárias.
+          {/* Total do Quarto */}
+          {total > 0 && selectedGuests.length > 0 && (
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Total do quarto:</span>{" "}
+                <span className="font-bold text-blue-700">
+                  R$ {total.toFixed(2)}
                 </span>
-              )}
-              {dailyRate === 0 && nights > 0 && (
-                <span className="text-yellow-600 block mt-1">
-                  ⚠️ Informe o valor da diária para ver o total.
-                </span>
-              )}
-            </p>
-          </div>
+              </p>
+            </div>
+          )}
 
           {error && (
             <p className="text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
@@ -264,14 +311,12 @@ export default function RoomModal({
 
         <div className="flex gap-3 mt-6">
           <button
-            type="button"
             onClick={onClose}
             className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors"
           >
             Cancelar
           </button>
           <button
-            type="button"
             onClick={handleSubmit}
             className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >

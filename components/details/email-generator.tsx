@@ -1,13 +1,18 @@
-// app/requests/[id]/components/email-generator.tsx
+// components/details/email-generator.tsx
 "use client";
 
 import { useState } from "react";
+
+interface DailyRate {
+  date: string;
+  value: number;
+}
 
 interface Room {
   id: string;
   type: "individual" | "duplo" | "triplo" | "quadruplo";
   guests: { id: string; name: string; document: string }[];
-  dailyRate: number;
+  dailyRates: DailyRate[];
   total: number;
 }
 
@@ -42,43 +47,37 @@ export default function EmailGenerator({
     return `R$ ${value.toFixed(2)}`;
   };
 
-  const generateEmailBody = () => {
-    const roomTypes = {
-      individual: "Individual",
-      duplo: "Duplo",
-      triplo: "Triplo",
-      quadruplo: "Quadruplo",
-    };
+ // components/details/email-generator.tsx (parte principal)
 
-    let roomsSection = rooms
-      .map((room) => {
-        const guestsList = room.guests.map((g) => `    - ${g.name}`).join("\n");
-        return `Quarto ${roomTypes[room.type]}
-  Hóspedes:
-${guestsList}
-  Valor da diária: ${formatCurrency(room.dailyRate)}
-  Total: ${formatCurrency(room.total)} (${nights} diárias)`;
-      })
-      .join("\n\n");
-
-    return `Olá, tudo bem?
-
-Segue informações das reservas de hotel realizadas para o evento 
-"${eventName}", na cidade ${location}.
-
-Hotel: ${hotelName}
-Check-in: ${formatDate(checkIn)}
-Check-out: ${formatDate(checkOut)}
-Total de diárias: ${nights}
-
-${roomsSection}
-
-Valor total da reserva: ${formatCurrency(totalCost)}
-
-Atenciosamente,
-[seu nome]`;
+const generateEmailBody = () => {
+  const roomTypes = {
+    individual: "Individual",
+    duplo: "Duplo",
+    triplo: "Triplo",
+    quadruplo: "Quadruplo",
   };
 
+  const roomsSection = rooms
+    .map((room) => {
+      const guestsList = room.guests.map((g) => `    - ${g.name}`).join("\n");
+      const periodsList = room.periods
+        .map((p) => {
+          const start = new Date(p.startDate);
+          const end = new Date(p.endDate);
+          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          return `    ${start.toLocaleDateString("pt-BR")} a ${end.toLocaleDateString("pt-BR")} - ${formatCurrency(p.dailyRate)}/diária (${days} dias)`;
+        })
+        .join("\n");
+
+      return `Quarto ${roomTypes[room.type]}
+  Hóspedes:
+${guestsList}
+  Períodos:
+${periodsList}
+  Total: ${formatCurrency(room.total)}`;
+    })
+    .join("\n\n");
+  }
   const handleCopy = () => {
     navigator.clipboard.writeText(generateEmailBody());
     setCopied(true);

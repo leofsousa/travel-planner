@@ -299,6 +299,8 @@ export default function HotelPlanning({
           editingRoom={editingRoom}
           nights={nights}
           roomTypes={roomTypes}
+          startDate={checkIn}   
+          endDate={checkOut} 
         />
       )}
     </div>
