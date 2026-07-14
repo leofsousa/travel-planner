@@ -16,6 +16,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { href: "/", label: "Dashboard", icon: "📊" },
     { href: "/requests/new", label: "Nova Solicitação", icon: "➕" },
     { href: "/guests", label: "Hóspedes", icon: "👥" },
+    { href: "/hotels", label: "Hoteis", icon: "🏨"},
   ];
 
   const isActive = (href: string) => pathname === href;

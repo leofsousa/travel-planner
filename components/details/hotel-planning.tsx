@@ -6,6 +6,7 @@ import RoomCard from "./room-card";
 import RoomModal from "./room-modal";
 import EmailGenerator from "./email-generator";
 import { saveHotelPlanning, getHotelPlanning } from "@/lib/services/request-service";
+import HotelAutocomplete from "./hotel-autocomplete";
 
 interface Guest {
   id: string;
@@ -60,6 +61,12 @@ export default function HotelPlanning({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedHotel, setSelectedHotel] = useState<any>(null);
+
+  const handleHotelSelected = (hotel: any) => {
+    setSelectedHotel(hotel);
+    // Opcional: preencher outros campos (endereço, telefone, etc.)
+  };
 
   const calculateNights = () => {
     if (!checkIn || !checkOut) return 0;
@@ -99,7 +106,7 @@ export default function HotelPlanning({
           setHotelName(data.hotel_name || "");
           setCheckIn(data.check_in || startDate);
           setCheckOut(data.check_out || endDate);
-          
+
           if (data.rooms && data.rooms.length > 0) {
             const loadedRooms = data.rooms.map((room: any) => {
               const periods = room.periods || [];
@@ -242,12 +249,12 @@ export default function HotelPlanning({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Nome do Hotel
           </label>
-          <input
-            type="text"
+          <HotelAutocomplete
             value={hotelName}
-            onChange={(e) => setHotelName(e.target.value)}
-            placeholder="Ex: Hilton São Paulo"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            onChange={setHotelName}
+            onHotelSelected={handleHotelSelected}
+            city={location} // ← Usa a cidade da solicitação
+            placeholder="Digite o nome do hotel..."
           />
         </div>
         <div>
@@ -336,8 +343,8 @@ export default function HotelPlanning({
           editingRoom={editingRoom}
           nights={nights}
           roomTypes={roomTypes}
-          startDate={checkIn}   
-          endDate={checkOut} 
+          startDate={checkIn}
+          endDate={checkOut}
         />
       )}
     </div>
