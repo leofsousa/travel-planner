@@ -1,4 +1,3 @@
-// components/details/room-modal.tsx (versão com períodos)
 "use client";
 
 import { useState, useEffect } from "react";
@@ -33,6 +32,8 @@ interface RoomModalProps {
   roomTypes: Record<string, string>;
   startDate: string;
   endDate: string;
+  requestStartDate: string;
+  requestEndDate: string;
 }
 
 export default function RoomModal({
@@ -45,14 +46,17 @@ export default function RoomModal({
   roomTypes,
   startDate,
   endDate,
+  requestStartDate,
+  requestEndDate,
 }: RoomModalProps) {
   const [type, setType] = useState<Room["type"]>("individual");
   const [selectedGuests, setSelectedGuests] = useState<Guest[]>([]);
   const [periods, setPeriods] = useState<RatePeriod[]>([
-    { startDate: startDate, endDate: endDate, dailyRate: 0 }
+    { startDate: startDate || requestStartDate, endDate: endDate || requestEndDate, dailyRate: 0 }
   ]);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (editingRoom) {
@@ -62,18 +66,51 @@ export default function RoomModal({
     } else {
       setType("individual");
       setSelectedGuests([]);
-      setPeriods([{ startDate: startDate, endDate: endDate, dailyRate: 0 }]);
+      setPeriods([{ startDate: startDate || requestStartDate, endDate: endDate || requestEndDate, dailyRate: 0 }]);
     }
     setSearchTerm("");
     setError("");
-  }, [editingRoom, isOpen, startDate, endDate]);
+    setValidationErrors([]);
+  }, [editingRoom, isOpen, startDate, endDate, requestStartDate, requestEndDate]);
+
+  // 🔥 VALIDAÇÃO DOS PERÍODOS
+  const validatePeriods = () => {
+    const errors: string[] = [];
+
+    periods.forEach((period, index) => {
+      // Período dentro da viagem
+      if (period.startDate < requestStartDate) {
+        errors.push(`Período ${index + 1} começa antes da viagem.`);
+      }
+      if (period.endDate > requestEndDate) {
+        errors.push(`Período ${index + 1} termina depois da viagem.`);
+      }
+      if (period.startDate >= period.endDate) {
+        errors.push(`Período ${index + 1} tem data de início maior ou igual ao fim.`);
+      }
+    });
+
+    // Sobreposição de períodos
+    for (let i = 0; i < periods.length; i++) {
+      for (let j = i + 1; j < periods.length; j++) {
+        const p1 = periods[i];
+        const p2 = periods[j];
+        if (p1.startDate < p2.endDate && p2.startDate < p1.endDate) {
+          errors.push(`Períodos ${i + 1} e ${j + 1} estão sobrepostos.`);
+        }
+      }
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
 
   const addPeriod = () => {
     const lastPeriod = periods[periods.length - 1];
     const newStart = lastPeriod.endDate;
     setPeriods([
       ...periods,
-      { startDate: newStart, endDate: endDate, dailyRate: 0 }
+      { startDate: newStart, endDate: requestEndDate, dailyRate: 0 }
     ]);
   };
 
@@ -86,6 +123,7 @@ export default function RoomModal({
     const updated = [...periods];
     updated[index] = { ...updated[index], [field]: value };
     setPeriods(updated);
+    setValidationErrors([]);
   };
 
   const calculateTotal = () => {
@@ -104,6 +142,11 @@ export default function RoomModal({
   );
 
   const addGuest = (guest: Guest) => {
+    // 🔥 VALIDAÇÃO: Quarto individual só pode ter 1 hóspede
+    if (type === "individual" && selectedGuests.length >= 1) {
+      setError("Quartos individuais só podem ter 1 hóspede.");
+      return;
+    }
     setSelectedGuests([...selectedGuests, guest]);
     setSearchTerm("");
     setError("");
@@ -114,8 +157,21 @@ export default function RoomModal({
   };
 
   const handleSubmit = () => {
+    // 🔥 VALIDAÇÃO DE HÓSPEDES
     if (selectedGuests.length === 0) {
       setError("Adicione pelo menos um hóspede ao quarto");
+      return;
+    }
+
+    // 🔥 VALIDAÇÃO DE QUARTO INDIVIDUAL
+    if (type === "individual" && selectedGuests.length > 1) {
+      setError("Quartos individuais só podem ter 1 hóspede.");
+      return;
+    }
+
+    // 🔥 VALIDAÇÃO DE PERÍODOS
+    if (!validatePeriods()) {
+      setError(validationErrors.join(" "));
       return;
     }
 
@@ -160,6 +216,11 @@ export default function RoomModal({
                 </option>
               ))}
             </select>
+            {type === "individual" && (
+              <p className="text-xs text-gray-500 mt-1">
+                ⚠️ Quarto individual: apenas 1 hóspede permitido.
+              </p>
+            )}
           </div>
 
           {/* Períodos */}
@@ -191,6 +252,8 @@ export default function RoomModal({
                           <input
                             type="date"
                             value={period.startDate}
+                            min={requestStartDate}
+                            max={requestEndDate}
                             onChange={(e) => updatePeriod(index, "startDate", e.target.value)}
                             className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
                           />
@@ -200,6 +263,8 @@ export default function RoomModal({
                           <input
                             type="date"
                             value={period.endDate}
+                            min={requestStartDate}
+                            max={requestEndDate}
                             onChange={(e) => updatePeriod(index, "endDate", e.target.value)}
                             className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
                           />
@@ -236,6 +301,15 @@ export default function RoomModal({
                 );
               })}
             </div>
+            {validationErrors.length > 0 && (
+              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                <ul className="list-disc list-inside text-xs text-red-600">
+                  {validationErrors.map((err, idx) => (
+                    <li key={idx}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Hóspedes */}

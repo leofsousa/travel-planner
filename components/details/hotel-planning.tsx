@@ -336,16 +336,18 @@ export default function HotelPlanning({
 
       {isModalOpen && (
         <RoomModal
-          isOpen={isModalOpen}
-          onClose={handleModalClose}
-          onSave={handleModalSave}
-          availableGuests={availableGuests}
-          editingRoom={editingRoom}
-          nights={nights}
-          roomTypes={roomTypes}
-          startDate={checkIn}
-          endDate={checkOut}
-        />
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSave={handleModalSave}
+        availableGuests={availableGuests}
+        editingRoom={editingRoom}
+        nights={nights}
+        roomTypes={roomTypes}
+        startDate={checkIn}   
+        endDate={checkOut}
+        requestStartDate={startDate}  // ← NOVO
+        requestEndDate={endDate}      // ← NOVO
+      />
       )}
     </div>
   );
