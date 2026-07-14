@@ -44,7 +44,7 @@ export default function HotelAutocomplete({
         try {
           const results = await searchHotels(value, city);
           setSuggestions(results);
-          setIsOpen(results.length > 0);
+          setIsOpen(true);
         } catch (error) {
           console.error("Erro ao buscar hotéis:", error);
         } finally {
@@ -112,7 +112,7 @@ export default function HotelAutocomplete({
           }
         }}
         onFocus={() => {
-          if (value.length >= 2 && suggestions.length > 0) {
+          if (value.length >= 2) {
             setIsOpen(true);
           }
         }}
@@ -126,27 +126,44 @@ export default function HotelAutocomplete({
         </div>
       )}
 
-      {isOpen && suggestions.length > 0 && (
+      {/* 🔥 DROPDOWN - SEMPRE ABERTO QUANDO isOpen É TRUE */}
+      {isOpen && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-          {suggestions.map((hotel) => (
+          {/* SUGESTÕES */}
+          {suggestions.length > 0 ? (
+            suggestions.map((hotel) => (
+              <button
+                key={hotel.id}
+                onClick={() => handleSelectSuggestion(hotel)}
+                className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
+              >
+                <div className="font-medium text-gray-900">{hotel.name}</div>
+                <div className="text-sm text-gray-500">
+                  {hotel.city}{hotel.state ? `, ${hotel.state}` : ""}
+                </div>
+              </button>
+            ))
+          ) : (
+            // 🔥 MENSAGEM QUANDO NÃO HÁ SUGESTÕES
+            <div className="px-4 py-2 text-sm text-gray-500 border-b border-gray-100">
+              Nenhum hotel encontrado para "{value}"
+            </div>
+          )}
+
+          {/* 🔥 BOTÃO DE CADASTRO - SEMPRE VISÍVEL QUANDO HÁ TEXTO DIGITADO */}
+          {value.length >= 2 && (
             <button
-              key={hotel.id}
-              onClick={() => handleSelectSuggestion(hotel)}
-              className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
+              onClick={handleCreateHotel}
+              disabled={isCreating}
+              className="w-full text-left px-4 py-2 bg-blue-50 hover:bg-blue-100 transition-colors text-sm text-blue-700 font-medium border-t border-gray-200"
             >
-              <div className="font-medium text-gray-900">{hotel.name}</div>
-              <div className="text-sm text-gray-500">
-                {hotel.city}{hotel.state ? `, ${hotel.state}` : ""}
-              </div>
+              {isCreating ? (
+                "Cadastrando..."
+              ) : (
+                `+ Cadastrar "${value.trim()}"`
+              )}
             </button>
-          ))}
-          <button
-            onClick={handleCreateHotel}
-            disabled={isCreating}
-            className="w-full text-left px-4 py-2 bg-blue-50 hover:bg-blue-100 transition-colors text-sm text-blue-700 font-medium border-t border-gray-200"
-          >
-            {isCreating ? "Cadastrando..." : `+ Cadastrar "${value}"`}
-          </button>
+          )}
         </div>
       )}
     </div>
