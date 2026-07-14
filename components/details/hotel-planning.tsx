@@ -13,11 +13,17 @@ interface Guest {
   document: string;
 }
 
+interface RatePeriod {
+  startDate: string;
+  endDate: string;
+  dailyRate: number;
+}
+
 interface Room {
   id: string;
   type: "individual" | "duplo" | "triplo" | "quadruplo";
   guests: Guest[];
-  dailyRate: number;
+  periods: RatePeriod[];
   total: number;
 }
 
@@ -28,6 +34,14 @@ interface HotelPlanningProps {
   startDate: string;
   endDate: string;
   availableGuests: Guest[];
+  onDataChange?: (data: {
+    hotelName: string;
+    checkIn: string;
+    checkOut: string;
+    rooms: Room[];
+    nights: number;
+    totalCost: number;
+  }) => void;
 }
 
 export default function HotelPlanning({
@@ -37,6 +51,7 @@ export default function HotelPlanning({
   startDate,
   endDate,
   availableGuests,
+  onDataChange,
 }: HotelPlanningProps) {
   const [hotelName, setHotelName] = useState("");
   const [checkIn, setCheckIn] = useState(startDate);
@@ -56,6 +71,24 @@ export default function HotelPlanning({
 
   const nights = calculateNights();
 
+  const calculateTotal = () => {
+    return rooms.reduce((sum, room) => sum + room.total, 0);
+  };
+
+  // 🔥 NOTIFICAR O PAI SEMPRE QUE OS DADOS MUDAREM
+  useEffect(() => {
+    if (onDataChange && !isLoading) {
+      onDataChange({
+        hotelName,
+        checkIn,
+        checkOut,
+        rooms,
+        nights,
+        totalCost: calculateTotal(),
+      });
+    }
+  }, [hotelName, checkIn, checkOut, rooms, nights, isLoading]);
+
   // Carregar planejamento salvo
   useEffect(() => {
     async function loadPlanning() {
@@ -68,17 +101,27 @@ export default function HotelPlanning({
           setCheckOut(data.check_out || endDate);
           
           if (data.rooms && data.rooms.length > 0) {
-            const loadedRooms = data.rooms.map((room: any) => ({
-              id: room.id,
-              type: room.type,
-              dailyRate: room.daily_rate,
-              guests: room.room_guests?.map((rg: any) => ({
-                id: rg.guests.id,
-                name: rg.guests.full_name,
-                document: rg.guests.document,
-              })) || [],
-              total: room.daily_rate * nights,
-            }));
+            const loadedRooms = data.rooms.map((room: any) => {
+              const periods = room.periods || [];
+              const total = periods.reduce((sum: number, period: any) => {
+                const start = new Date(period.startDate);
+                const end = new Date(period.endDate);
+                const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                return sum + (days * period.dailyRate);
+              }, 0);
+
+              return {
+                id: room.id,
+                type: room.type,
+                guests: room.room_guests?.map((rg: any) => ({
+                  id: rg.guests.id,
+                  name: rg.guests.full_name,
+                  document: rg.guests.document,
+                })) || [],
+                periods: periods,
+                total: total,
+              };
+            });
             setRooms(loadedRooms);
           }
         }
@@ -93,7 +136,6 @@ export default function HotelPlanning({
 
   // Salvar automaticamente quando houver mudanças
   useEffect(() => {
-    // Não salvar na primeira renderização ou se estiver carregando
     if (isLoading) return;
 
     const saveTimeout = setTimeout(async () => {
@@ -104,23 +146,30 @@ export default function HotelPlanning({
           checkOut,
           rooms: rooms.map((room) => ({
             type: room.type,
-            dailyRate: room.dailyRate,
+            periods: room.periods,
             guests: room.guests.map((g) => g.id),
           })),
         });
       } catch (error) {
         console.error("Erro ao salvar planejamento:", error);
       }
-    }, 500); // Debounce de 500ms
+    }, 500);
 
     return () => clearTimeout(saveTimeout);
   }, [hotelName, checkIn, checkOut, rooms, requestId, isLoading]);
 
   const addRoom = (roomData: Omit<Room, "id" | "total">) => {
+    const total = roomData.periods.reduce((sum, period) => {
+      const start = new Date(period.startDate);
+      const end = new Date(period.endDate);
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      return sum + (days * period.dailyRate);
+    }, 0);
+
     const newRoom: Room = {
       ...roomData,
       id: `room-${Date.now()}`,
-      total: roomData.dailyRate * nights,
+      total,
     };
     setRooms([...rooms, newRoom]);
   };
@@ -131,10 +180,6 @@ export default function HotelPlanning({
 
   const removeRoom = (roomId: string) => {
     setRooms(rooms.filter((r) => r.id !== roomId));
-  };
-
-  const calculateTotal = () => {
-    return rooms.reduce((sum, room) => sum + room.total, 0);
   };
 
   const handleEditRoom = (room: Room) => {
@@ -149,10 +194,17 @@ export default function HotelPlanning({
 
   const handleModalSave = (roomData: Omit<Room, "id" | "total">) => {
     if (editingRoom) {
+      const total = roomData.periods.reduce((sum, period) => {
+        const start = new Date(period.startDate);
+        const end = new Date(period.endDate);
+        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        return sum + (days * period.dailyRate);
+      }, 0);
+
       const updatedRoom = {
         ...editingRoom,
         ...roomData,
-        total: roomData.dailyRate * nights,
+        total,
       };
       updateRoom(updatedRoom);
     } else {
@@ -274,21 +326,6 @@ export default function HotelPlanning({
           </div>
         )}
       </div>
-
-      {rooms.length > 0 && hotelName && (
-        <div className="border-t border-gray-200 pt-4">
-          <EmailGenerator
-            eventName={eventName}
-            location={location}
-            hotelName={hotelName}
-            checkIn={checkIn}
-            checkOut={checkOut}
-            rooms={rooms}
-            nights={nights}
-            totalCost={calculateTotal()}
-          />
-        </div>
-      )}
 
       {isModalOpen && (
         <RoomModal

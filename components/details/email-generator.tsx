@@ -3,16 +3,17 @@
 
 import { useState } from "react";
 
-interface DailyRate {
-  date: string;
-  value: number;
+interface RatePeriod {
+  startDate: string;
+  endDate: string;
+  dailyRate: number;
 }
 
 interface Room {
   id: string;
   type: "individual" | "duplo" | "triplo" | "quadruplo";
   guests: { id: string; name: string; document: string }[];
-  dailyRates: DailyRate[];
+  periods: RatePeriod[];
   total: number;
 }
 
@@ -39,45 +40,98 @@ export default function EmailGenerator({
 }: EmailGeneratorProps) {
   const [copied, setCopied] = useState(false);
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("pt-BR");
-  };
+  function formatDate(dateString: string) {
+    if (!dateString) return "Data não informada";
+    const parts = dateString.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateString;
+  }
 
   const formatCurrency = (value: number) => {
+    if (value === undefined || value === null) return "R$ 0,00";
     return `R$ ${value.toFixed(2)}`;
   };
 
- // components/details/email-generator.tsx (parte principal)
-
-const generateEmailBody = () => {
-  const roomTypes = {
+  const roomTypes: Record<string, string> = {
     individual: "Individual",
     duplo: "Duplo",
     triplo: "Triplo",
     quadruplo: "Quadruplo",
   };
 
-  const roomsSection = rooms
-    .map((room) => {
-      const guestsList = room.guests.map((g) => `    - ${g.name}`).join("\n");
-      const periodsList = room.periods
-        .map((p) => {
-          const start = new Date(p.startDate);
-          const end = new Date(p.endDate);
-          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-          return `    ${start.toLocaleDateString("pt-BR")} a ${end.toLocaleDateString("pt-BR")} - ${formatCurrency(p.dailyRate)}/diária (${days} dias)`;
-        })
-        .join("\n");
+  // 🔥 Agrupa quartos por tipo e valor da diária
+  const groupRooms = (rooms: Room[]) => {
+    const groups: Record<string, { type: string; periods: RatePeriod[]; guests: { name: string }[]; count: number; total: number }> = {};
 
-      return `Quarto ${roomTypes[room.type]}
+    rooms.forEach((room) => {
+      // Gera uma chave única para agrupar quartos com o mesmo tipo e mesmos períodos
+      const periodsKey = room.periods.map(p => `${p.startDate}-${p.endDate}-${p.dailyRate}`).join("|");
+      const key = `${room.type}-${periodsKey}`;
+      
+      if (!groups[key]) {
+        groups[key] = {
+          type: room.type,
+          periods: room.periods,
+          guests: [],
+          count: 0,
+          total: 0,
+        };
+      }
+      groups[key].guests.push(...room.guests);
+      groups[key].count += 1;
+      groups[key].total += room.total;
+    });
+
+    return Object.values(groups);
+  };
+
+  const groupedRooms = groupRooms(rooms);
+
+  const generateEmailBody = () => {
+    let roomsSection = groupedRooms
+      .map((group) => {
+        const typeLabel = roomTypes[group.type] || group.type;
+        const guestsList = group.guests.map((g) => `    - ${g.name}`).join("\n");
+        
+        // Gera a lista de períodos
+        const periodsList = group.periods
+          .map((p) => {
+            const start = new Date(p.startDate);
+            const end = new Date(p.endDate);
+            const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+            return `    ${start.toLocaleDateString("pt-BR")} a ${end.toLocaleDateString("pt-BR")} - ${formatCurrency(p.dailyRate)}/diária (${days} dias)`;
+          })
+          .join("\n");
+
+        return `${group.count > 1 ? `${group.count}x ` : ""}Quarto ${typeLabel}
   Hóspedes:
 ${guestsList}
   Períodos:
 ${periodsList}
-  Total: ${formatCurrency(room.total)}`;
-    })
-    .join("\n\n");
-  }
+  Total do grupo: ${formatCurrency(group.total)}`;
+      })
+      .join("\n\n");
+
+    return `Olá, tudo bem?
+
+Segue informações das reservas de hotel realizadas para o evento 
+"${eventName}", na cidade ${location}.
+
+Hotel: ${hotelName}
+Check-in: ${formatDate(checkIn)}
+Check-out: ${formatDate(checkOut)}
+Total de diárias: ${nights}
+
+${roomsSection}
+
+Valor total da reserva: ${formatCurrency(totalCost)}
+
+Atenciosamente,
+[seu nome]`;
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(generateEmailBody());
     setCopied(true);

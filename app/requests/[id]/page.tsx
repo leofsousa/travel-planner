@@ -54,6 +54,16 @@ export default function RequestDetailPage({ params }: { params: Params }) {
   const [request, setRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isTasksOpen, setIsTasksOpen] = useState(false);
+  
+  // 🔥 ESTADO PARA COMPARTILHAR OS DADOS DO HOTEL
+  const [hotelSharedData, setHotelSharedData] = useState({
+    hotelName: "",
+    checkIn: "",
+    checkOut: "",
+    rooms: [],
+    nights: 0,
+    totalCost: 0,
+  });
 
   useEffect(() => {
     async function loadData() {
@@ -72,6 +82,19 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     }
     loadData();
   }, [params.id]);
+
+  // 🔥 FUNÇÃO PARA RECEBER OS DADOS DO HOTELPLANNING
+  const handleHotelDataChange = (data: {
+    hotelName: string;
+    checkIn: string;
+    checkOut: string;
+    rooms: any[];
+    nights: number;
+    totalCost: number;
+  }) => {
+    console.log("📝 Dados recebidos do HotelPlanning:", data);
+    setHotelSharedData(data);
+  };
 
   if (loading) {
     return (
@@ -110,9 +133,9 @@ export default function RequestDetailPage({ params }: { params: Params }) {
             <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
               ← Voltar ao Dashboard
             </Link>
-            <DeleteButton 
-              requestId={params.id} 
-              requestName={request.event_name} 
+            <DeleteButton
+              requestId={params.id}
+              requestName={request.event_name}
             />
           </div>
 
@@ -169,7 +192,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
           {/* ============================================ */}
           {/* SEÇÕES DE PLANEJAMENTO */}
           {/* ============================================ */}
-          
+
           {/* 🏨 HOTEL */}
           {hasHotel && (
             <div className="mt-4">
@@ -180,6 +203,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
                 startDate={request.start_date}
                 endDate={request.end_date}
                 availableGuests={availableGuests}
+                onDataChange={handleHotelDataChange}
               />
             </div>
           )}
@@ -335,6 +359,14 @@ export default function RequestDetailPage({ params }: { params: Params }) {
           requestId={params.id}
           isOpen={isTasksOpen}
           onClose={() => setIsTasksOpen(false)}
+          eventName={request.event_name}
+          location={request.location}
+          hotelName={hotelSharedData.hotelName}
+          checkIn={hotelSharedData.checkIn}
+          checkOut={hotelSharedData.checkOut}
+          rooms={hotelSharedData.rooms}
+          nights={hotelSharedData.nights}
+          totalCost={hotelSharedData.totalCost}
         />
 
         {/* Botão flutuante para abrir tasks no mobile */}

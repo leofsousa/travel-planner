@@ -251,6 +251,8 @@ export async function deleteRequest(id: string): Promise<void> {
   }
 }
 
+// lib/services/request-service.ts (versão corrigida e simplificada)
+
 export async function saveHotelPlanning(
   requestId: string,
   data: {
@@ -259,89 +261,154 @@ export async function saveHotelPlanning(
     checkOut: string;
     rooms: {
       type: string;
-      dailyRate: number;
+      periods: any[];
       guests: string[];
     }[];
   }
 ) {
   const supabase = createClient();
 
-  const { data: existingPlanning, error: searchError } = await supabase
-    .from("hotel_planning")
-    .select("id")
-    .eq("request_id", requestId)
-    .maybeSingle();
+  console.log("📝 saveHotelPlanning chamado:", { requestId, data });
 
-  if (searchError) throw searchError;
-
-  let planningId: string;
-
-  if (existingPlanning) {
-    const { data: updated, error: updateError } = await supabase
+  try {
+    // 1. Buscar ou criar planejamento
+    const { data: existingPlanning, error: searchError } = await supabase
       .from("hotel_planning")
-      .update({
-        hotel_name: data.hotelName,
-        check_in: data.checkIn,
-        check_out: data.checkOut,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", existingPlanning.id)
-      .select()
-      .single();
+      .select("id")
+      .eq("request_id", requestId)
+      .maybeSingle();
 
-    if (updateError) throw updateError;
-    planningId = updated.id;
+    if (searchError) {
+      console.error("❌ Erro ao buscar planejamento:", searchError);
+      throw searchError;
+    }
 
-    const { error: deleteError } = await supabase
-      .from("rooms")
-      .delete()
-      .eq("hotel_planning_id", planningId);
+    let planningId: string;
 
-    if (deleteError) throw deleteError;
-  } else {
-    const { data: newPlanning, error: insertError } = await supabase
-      .from("hotel_planning")
-      .insert({
-        request_id: requestId,
-        hotel_name: data.hotelName,
-        check_in: data.checkIn,
-        check_out: data.checkOut,
-      })
-      .select()
-      .single();
+    if (existingPlanning) {
+      console.log("📝 Atualizando planejamento existente:", existingPlanning.id);
 
-    if (insertError) throw insertError;
-    planningId = newPlanning.id;
-  }
+      const { data: updated, error: updateError } = await supabase
+        .from("hotel_planning")
+        .update({
+          hotel_name: data.hotelName,
+          check_in: data.checkIn,
+          check_out: data.checkOut,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingPlanning.id)
+        .select()
+        .single();
 
-  for (const room of data.rooms) {
-    const { data: roomData, error: roomError } = await supabase
-      .from("rooms")
-      .insert({
+      if (updateError) {
+        console.error("❌ Erro ao atualizar planejamento:", updateError);
+        throw updateError;
+      }
+      planningId = updated.id;
+
+      // Remove quartos antigos
+      const { error: deleteError } = await supabase
+        .from("rooms")
+        .delete()
+        .eq("hotel_planning_id", planningId);
+
+      if (deleteError) {
+        console.error("❌ Erro ao deletar quartos antigos:", deleteError);
+        throw deleteError;
+      }
+    } else {
+      console.log("📝 Criando novo planejamento");
+
+      const { data: newPlanning, error: insertError } = await supabase
+        .from("hotel_planning")
+        .insert({
+          request_id: requestId,
+          hotel_name: data.hotelName,
+          check_in: data.checkIn,
+          check_out: data.checkOut,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("❌ Erro ao criar planejamento:", insertError);
+        throw insertError;
+      }
+      planningId = newPlanning.id;
+    }
+
+    console.log("📝 Salvando quartos para planningId:", planningId);
+
+    // 2. Inserir quartos um por um (com validação)
+    for (const room of data.rooms) {
+      console.log("📝 Processando quarto:", JSON.stringify(room, null, 2));
+
+      // 🔥 VALIDAÇÃO ESTRITA DOS DADOS
+      const roomData = {
         hotel_planning_id: planningId,
         type: room.type,
-        daily_rate: room.dailyRate,
-      })
-      .select()
-      .single();
+        periods: Array.isArray(room.periods) ? room.periods : [],
+      };
 
-    if (roomError) throw roomError;
+      // 🔥 VERIFICA SE OS DADOS SÃO VÁLIDOS
+      if (!roomData.type || !['individual', 'duplo', 'triplo', 'quadruplo'].includes(roomData.type)) {
+        console.warn("⚠️ Tipo de quarto inválido:", roomData.type);
+        continue;
+      }
 
-    if (room.guests.length > 0) {
-      const roomGuests = room.guests.map((guestId) => ({
-        room_id: roomData.id,
-        guest_id: guestId,
-      }));
+      if (roomData.periods.length === 0) {
+        console.warn("⚠️ Quarto sem períodos válidos, pulando...");
+        continue;
+      }
 
-      const { error: guestsError } = await supabase
-        .from("room_guests")
-        .insert(roomGuests);
+      console.log("📝 Inserindo quarto:", JSON.stringify(roomData, null, 2));
 
-      if (guestsError) throw guestsError;
+      const { data: insertedRoom, error: roomError } = await supabase
+        .from("rooms")
+        .insert(roomData)
+        .select()
+        .single();
+
+      if (roomError) {
+        console.error("❌ Erro detalhado ao salvar quarto:", {
+          error: roomError,
+          message: roomError.message,
+          details: roomError.details,
+          hint: roomError.hint,
+        });
+        throw roomError;
+      }
+
+      console.log("✅ Quarto inserido:", insertedRoom);
+
+      // 3. Associar hóspedes
+      if (room.guests.length > 0 && insertedRoom) {
+        const roomGuests = room.guests.map((guestId) => ({
+          room_id: insertedRoom.id,
+          guest_id: guestId,
+        }));
+
+        console.log("📝 Inserindo hóspedes:", JSON.stringify(roomGuests, null, 2));
+
+        const { error: guestsError } = await supabase
+          .from("room_guests")
+          .insert(roomGuests);
+
+        if (guestsError) {
+          console.error("❌ Erro ao salvar hóspedes:", guestsError);
+          throw guestsError;
+        }
+
+        console.log("✅ Hóspedes associados:", roomGuests.length);
+      }
     }
-  }
 
-  return { success: true };
+    console.log("✅ Planejamento salvo com sucesso!");
+    return { success: true, planningId };
+  } catch (error) {
+    console.error("❌ Erro geral em saveHotelPlanning:", error);
+    throw error;
+  }
 }
 
 export async function getHotelPlanning(requestId: string) {
@@ -644,4 +711,96 @@ export async function resetTasks(requestId: string) {
   }
 
   return { success: true, tasks: defaultTasks };
+}
+// lib/services/request-service.ts (adicione no final)
+
+// ============================================
+// FUNÇÕES DE HOTÉIS (BANCO DE DADOS)
+// ============================================
+
+export async function searchHotels(query: string, city?: string) {
+  const supabase = createClient();
+
+  let supabaseQuery = supabase
+    .from("hotels")
+    .select("*")
+    .ilike("name", `%${query}%`)
+    .order("name", { ascending: true })
+    .limit(10);
+
+  // Se a cidade for fornecida, filtra por ela
+  if (city) {
+    supabaseQuery = supabaseQuery.ilike("city", `%${city}%`);
+  }
+
+  const { data, error } = await supabaseQuery;
+
+  if (error) {
+    console.error("Erro ao buscar hotéis:", error);
+    throw new Error("Falha ao buscar hotéis");
+  }
+
+  return data || [];
+}
+
+export async function addHotel(hotelData: {
+  name: string;
+  city: string;
+  state?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+}) {
+  const supabase = createClient();
+
+  // Verifica se já existe um hotel com o mesmo nome e cidade
+  const { data: existing, error: checkError } = await supabase
+    .from("hotels")
+    .select("id")
+    .eq("name", hotelData.name)
+    .eq("city", hotelData.city)
+    .maybeSingle();
+
+  if (checkError) {
+    console.error("Erro ao verificar hotel existente:", checkError);
+    throw checkError;
+  }
+
+  if (existing) {
+    // Retorna o hotel existente
+    const { data, error } = await supabase
+      .from("hotels")
+      .select("*")
+      .eq("id", existing.id)
+      .single();
+
+    if (error) {
+      console.error("Erro ao buscar hotel existente:", error);
+      throw error;
+    }
+    return data;
+  }
+
+  // Insere novo hotel
+  const { data, error } = await supabase
+    .from("hotels")
+    .insert({
+      name: hotelData.name.trim(),
+      city: hotelData.city.trim(),
+      state: hotelData.state || null,
+      address: hotelData.address || null,
+      phone: hotelData.phone || null,
+      email: hotelData.email || null,
+      website: hotelData.website || null,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Erro ao adicionar hotel:", error);
+    throw new Error("Falha ao adicionar hotel");
+  }
+
+  return data;
 }

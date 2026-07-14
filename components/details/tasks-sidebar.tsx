@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { getTasks, saveTasks, resetTasks } from "@/lib/services/request-service";
+import EmailGenerator from "./email-generator";
 
 interface Subtask {
   key: string;
@@ -21,11 +22,33 @@ interface TasksSidebarProps {
   requestId: string;
   isOpen: boolean;
   onClose: () => void;
+  // 🔥 DADOS PARA O EMAIL
+  eventName: string;
+  location: string;
+  hotelName: string;
+  checkIn: string;
+  checkOut: string;
+  rooms: any[];
+  nights: number;
+  totalCost: number;
 }
 
-export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSidebarProps) {
+export default function TasksSidebar({
+  requestId,
+  isOpen,
+  onClose,
+  eventName,
+  location,
+  hotelName,
+  checkIn,
+  checkOut,
+  rooms,
+  nights,
+  totalCost,
+}: TasksSidebarProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showEmail, setShowEmail] = useState(false);
 
   const loadTasks = async () => {
     try {
@@ -43,23 +66,19 @@ export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSideba
     loadTasks();
   }, [requestId]);
 
-  // 🔥 SALVAR AUTOMATICAMENTE NO BANCO
   const saveTasksToDatabase = async (updatedTasks: Task[]) => {
     try {
       await saveTasks(requestId, updatedTasks);
     } catch (error) {
       console.error("Erro ao salvar tarefas:", error);
       alert("Erro ao salvar tarefas. Tente novamente.");
-      // Recarrega as tasks para garantir consistência
       await loadTasks();
     }
   };
 
   const handleToggleTask = async (taskKey: string) => {
     const updatedTasks = tasks.map((task) =>
-      task.key === taskKey
-        ? { ...task, completed: !task.completed }
-        : task
+      task.key === taskKey ? { ...task, completed: !task.completed } : task
     );
     setTasks(updatedTasks);
     await saveTasksToDatabase(updatedTasks);
@@ -69,11 +88,8 @@ export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSideba
     const updatedTasks = tasks.map((task) => {
       if (task.key === taskKey && task.subtasks) {
         const updatedSubtasks = task.subtasks.map((sub) =>
-          sub.key === subtaskKey
-            ? { ...sub, completed: !sub.completed }
-            : sub
+          sub.key === subtaskKey ? { ...sub, completed: !sub.completed } : sub
         );
-        // Verifica se todos os subtasks estão completos
         const allSubtasksDone = updatedSubtasks.every((s) => s.completed);
         return {
           ...task,
@@ -95,19 +111,19 @@ export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSideba
           key: "hotel_reserved",
           label: "🏨 Hotel Reservado",
           completed: false,
-          subtasks: []
+          subtasks: [],
         },
         {
           key: "email_sent",
           label: "📧 Email Enviado",
           completed: false,
-          subtasks: []
+          subtasks: [],
         },
         {
           key: "car_reserved",
           label: "🚗 Reserva de Carro Realizada",
           completed: false,
-          subtasks: []
+          subtasks: [],
         },
         {
           key: "flight_issued",
@@ -122,7 +138,7 @@ export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSideba
       ];
       setTasks(defaultTasks);
       await saveTasksToDatabase(defaultTasks);
-      await loadTasks(); // Recarrega para confirmar
+      await loadTasks();
     } catch (error) {
       console.error("Erro ao reiniciar tarefas:", error);
       alert("Erro ao reiniciar tarefas");
@@ -152,9 +168,9 @@ export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSideba
       <aside
         className={`
           fixed top-0 right-0 h-full bg-white shadow-lg z-50 transition-transform duration-300
-          w-80 p-4 overflow-y-auto
+          w-96 p-4 overflow-y-auto
           ${isOpen ? "translate-x-0" : "translate-x-full"}
-          lg:translate-x-0 lg:static lg:w-80 lg:shadow-none lg:border-l lg:border-gray-200
+          lg:translate-x-0 lg:static lg:w-96 lg:shadow-none lg:border-l lg:border-gray-200
           lg:h-screen lg:sticky lg:top-0 lg:self-start
         `}
       >
@@ -185,7 +201,6 @@ export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSideba
         <div className="space-y-4">
           {tasks.map((task) => (
             <div key={task.key} className="space-y-2">
-              {/* Task principal */}
               <label
                 className={`
                   flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors
@@ -211,7 +226,6 @@ export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSideba
                 </span>
               </label>
 
-              {/* Subtasks (se existirem) */}
               {task.subtasks && task.subtasks.length > 0 && (
                 <div className="ml-8 space-y-1">
                   {task.subtasks.map((subtask) => (
@@ -251,6 +265,33 @@ export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSideba
             🔄 Reiniciar tarefas
           </button>
         </div>
+
+        {/* 🔥 EMAIL GENERATOR - FIXO NA PARTE INFERIOR */}
+        {rooms && rooms.length > 0 && hotelName && (
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <button
+              onClick={() => setShowEmail(!showEmail)}
+              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              {showEmail ? "📧 Ocultar Email" : "📧 Gerar Email da Reserva"}
+            </button>
+
+            {showEmail && (
+              <div className="mt-4">
+                <EmailGenerator
+                  eventName={eventName}
+                  location={location}
+                  hotelName={hotelName}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  rooms={rooms}
+                  nights={nights}
+                  totalCost={totalCost}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </aside>
     </>
   );
