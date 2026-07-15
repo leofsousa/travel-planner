@@ -5,6 +5,7 @@ import { DndContext, DragEndEvent, closestCorners } from "@dnd-kit/core";
 import Link from "next/link";
 import { getRequests, updateRequestStatus } from "@/lib/services/request-service";
 import Column from "@/components/dashboard/column";
+import { formatDateBR } from "@/lib/utils/date-utils";
 
 interface Request {
   id: string;

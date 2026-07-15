@@ -1,4 +1,3 @@
-// app/control-panel/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -19,6 +18,11 @@ interface Request {
   hotel_planning?: any[];
   request_flights?: any;
   request_cars?: any;
+}
+
+function getMonthFromDate(dateString: string): string {
+  if (!dateString) return "";
+  return dateString.substring(0, 7);
 }
 
 function calculateMetrics(requests: Request[]) {
@@ -50,7 +54,6 @@ function calculateMetrics(requests: Request[]) {
       rooms.forEach((room: any) => {
         const periods = room.periods || [];
         periods.forEach((period: any) => {
-          // 🔥 CORREÇÃO: Calcular dias sem usar new Date() para evitar fuso
           const startParts = period.startDate.split("-").map(Number);
           const endParts = period.endDate.split("-").map(Number);
           const start = new Date(startParts[0], startParts[1] - 1, startParts[2]);
@@ -94,7 +97,7 @@ function getAvailableMonths(requests: Request[]) {
   const months = new Set<string>();
   requests.forEach((r) => {
     if (r.start_date) {
-      const month = r.start_date.substring(0, 7);
+      const month = getMonthFromDate(r.start_date);
       months.add(month);
     }
   });
@@ -124,7 +127,7 @@ export default function ControlPanelPage() {
     ? allRequests
     : allRequests.filter((r) => {
         if (!r.start_date) return false;
-        const month = r.start_date.substring(0, 7);
+        const month = getMonthFromDate(r.start_date);
         return month === selectedMonth;
       });
 
