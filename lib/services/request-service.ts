@@ -43,58 +43,29 @@ interface RequestData {
   };
 }
 
-// lib/services/request-service.ts
-// lib/services/request-service.ts
-
+/// lib/services/request-service.ts
 export async function createRequest(data: RequestData) {
   const supabase = createClient();
 
   try {
-    // 🔥 NOVA ESTRUTURA DE TASKS (com subitens)
+    // 🔥 TASKS PADRÃO
     const defaultTasks = [
-      {
-        key: "hotel_reserved",
-        label: "🏨 Hotel Reservado",
-        completed: false,
-        subtasks: []
-      },
-      {
-        key: "email_sent",
-        label: "📧 Email Enviado",
-        completed: false,
-        subtasks: []
-      },
-      {
-        key: "car_reserved",
-        label: "🚗 Reserva de Carro Realizada",
-        completed: false,
-        subtasks: []
-      },
+      { key: "hotel_reserved", label: "🏨 Hotel Reservado", completed: false, subtasks: [] },
+      { key: "email_sent", label: "📧 Email Enviado", completed: false, subtasks: [] },
+      { key: "car_reserved", label: "🚗 Reserva de Carro Realizada", completed: false, subtasks: [] },
       {
         key: "flight_issued",
         label: "✈️ Emissão da Passagem",
         completed: false,
         subtasks: [
-          {
-            key: "flight_purchase",
-            label: "Compra",
-            completed: false
-          },
-          {
-            key: "flight_checkin",
-            label: "Check-in",
-            completed: false
-          },
-          {
-            key: "flight_sent",
-            label: "Envio para o passageiro",
-            completed: false
-          }
-        ]
-      }
+          { key: "flight_purchase", label: "Compra", completed: false },
+          { key: "flight_checkin", label: "Check-in", completed: false },
+          { key: "flight_sent", label: "Envio para o passageiro", completed: false },
+        ],
+      },
     ];
 
-    // 1. Criar a solicitação com as tasks
+    // 1. Criar a solicitação principal
     const { data: request, error: requestError } = await supabase
       .from("requests")
       .insert({
@@ -103,19 +74,154 @@ export async function createRequest(data: RequestData) {
         start_date: data.startDate,
         end_date: data.endDate,
         status: "pending",
-        tasks: defaultTasks, // ← AGORA COM A NOVA ESTRUTURA
+        tasks: defaultTasks,
       })
       .select()
       .single();
 
     if (requestError) {
-      console.error("Erro ao criar solicitação:", requestError);
+      console.error("❌ Erro ao criar solicitação:", requestError);
       throw requestError;
     }
 
     const requestId = request.id;
+    console.log("📝 Solicitação criada com ID:", requestId);
 
-    // ... (resto do código: hotel, flight, car)
+    // 2. HOTEL
+    if (data.hotel.enabled) {
+      console.log("📝 Salvando hotel para request:", requestId);
+      console.log("📝 Dados do hotel:", data.hotel);
+
+      const { data: hotel, error: hotelError } = await supabase
+        .from("request_hotels")
+        .insert({
+          request_id: requestId,
+          enabled: true,
+          observations: data.hotel.observations || "",
+        })
+        .select()
+        .single();
+
+      if (hotelError) {
+        console.error("❌ Erro ao salvar hotel:", hotelError);
+        throw hotelError;
+      }
+
+      console.log("✅ Hotel salvo:", hotel);
+
+      if (data.hotel.guests && data.hotel.guests.length > 0) {
+        const hotelGuests = data.hotel.guests.map((guest) => ({
+          request_hotel_id: hotel.id,
+          guest_id: guest.id,
+        }));
+
+        console.log("📝 Salvando hóspedes do hotel:", hotelGuests);
+
+        const { error: hotelGuestsError } = await supabase
+          .from("hotel_guests")
+          .insert(hotelGuests);
+
+        if (hotelGuestsError) {
+          console.error("❌ Erro ao salvar hóspedes do hotel:", hotelGuestsError);
+          throw hotelGuestsError;
+        }
+
+        console.log("✅ Hóspedes do hotel salvos");
+      }
+    } else {
+      console.log("ℹ️ Hotel não habilitado, pulando...");
+    }
+
+    // 3. ✈️ PASSAGEM
+    if (data.flight.enabled) {
+      console.log("📝 Salvando passagem para request:", requestId);
+      console.log("📝 Dados da passagem:", data.flight);
+
+      const { data: flight, error: flightError } = await supabase
+        .from("request_flights")
+        .insert({
+          request_id: requestId,
+          enabled: true,
+          departure_date: data.flight.departureDate || null,
+          return_date: data.flight.returnDate || null,
+          observations: data.flight.observations || "",
+        })
+        .select()
+        .single();
+
+      if (flightError) {
+        console.error("❌ Erro ao salvar passagem:", flightError);
+        throw flightError;
+      }
+
+      console.log("✅ Passagem salva:", flight);
+    } else {
+      console.log("ℹ️ Passagem não habilitada, pulando...");
+    }
+
+    // 4. 🚗 CARRO
+    if (data.car.enabled && data.car.rentals && data.car.rentals.length > 0) {
+      console.log("📝 Salvando carro para request:", requestId);
+      console.log("📝 Dados do carro:", data.car);
+
+      const { data: carHeader, error: carHeaderError } = await supabase
+        .from("request_cars")
+        .insert({
+          request_id: requestId,
+          enabled: true,
+        })
+        .select()
+        .single();
+
+      if (carHeaderError) {
+        console.error("❌ Erro ao criar cabeçalho do carro:", carHeaderError);
+        throw carHeaderError;
+      }
+
+      console.log("✅ Cabeçalho do carro criado:", carHeader);
+
+      for (const rental of data.car.rentals) {
+        console.log("📝 Salvando locação:", rental);
+
+        const { data: carRental, error: rentalError } = await supabase
+          .from("car_rentals")
+          .insert({
+            request_car_id: carHeader.id,
+            start_date: rental.startDate,
+            end_date: rental.endDate,
+            observations: rental.observations || "",
+          })
+          .select()
+          .single();
+
+        if (rentalError) {
+          console.error("❌ Erro ao salvar locação:", rentalError);
+          throw rentalError;
+        }
+
+        console.log("✅ Locação salva:", carRental);
+
+        if (rental.drivers && rental.drivers.length > 0) {
+          const rentalDrivers = rental.drivers.map((driver) => ({
+            car_rental_id: carRental.id,
+            guest_id: driver.id,
+          }));
+
+          const { error: driversError } = await supabase
+            .from("rental_drivers")
+            .insert(rentalDrivers);
+
+          if (driversError) {
+            console.error("❌ Erro ao salvar condutores:", driversError);
+            throw driversError;
+          }
+
+          console.log("✅ Condutores salvos");
+        }
+      }
+    } else {
+      console.log("ℹ️ Carro não habilitado ou sem locações, pulando...");
+    }
 
     console.log("✅ Solicitação criada com sucesso! ID:", requestId);
     return { success: true, requestId };
@@ -164,6 +270,7 @@ export async function getRequests() {
 }
 
 // lib/services/request-service.ts
+// lib/services/request-service.ts
 export async function getRequestById(id: string) {
   const supabase = createClient();
 
@@ -208,16 +315,38 @@ export async function getRequestById(id: string) {
             )
           )
         )
+      ),
+      hotel_planning (
+        id,
+        hotel_name,
+        check_in,
+        check_out,
+        rooms (
+          id,
+          type,
+          periods,
+          room_guests (
+            id,
+            guests (
+              id,
+              full_name,
+              document
+            )
+          )
+        )
       )
     `)
     .eq("id", id)
     .single();
 
   if (error) {
-    console.error("Erro ao buscar solicitação:", error);
+    console.error("❌ Erro ao buscar solicitação:", error);
+    console.error("❌ Detalhes:", error.details);
+    console.error("❌ Mensagem:", error.message);
     throw new Error("Falha ao carregar solicitação");
   }
 
+  console.log("✅ Dados da solicitação:", JSON.stringify(data, null, 2));
   return data;
 }
 
@@ -714,12 +843,11 @@ export async function resetTasks(requestId: string) {
 }
 // lib/services/request-service.ts (adicione no final)
 
-// ============================================
-// FUNÇÕES DE HOTÉIS (BANCO DE DADOS)
-// ============================================
 
 export async function searchHotels(query: string, city?: string) {
   const supabase = createClient();
+
+  console.log("🔍 Buscando hotéis:", { query, city });
 
   let supabaseQuery = supabase
     .from("hotels")
@@ -728,21 +856,25 @@ export async function searchHotels(query: string, city?: string) {
     .order("name", { ascending: true })
     .limit(10);
 
-  // Se a cidade for fornecida, filtra por ela
   if (city) {
-    supabaseQuery = supabaseQuery.ilike("city", `%${city}%`);
+    // 🔥 EXTRAI APENAS A CIDADE (remove o que vem depois do "-")
+    const cityOnly = city.split("-")[0].trim();
+    console.log("🔍 Cidade extraída para busca:", cityOnly);
+    supabaseQuery = supabaseQuery.ilike("city", `%${cityOnly}%`);
   }
 
   const { data, error } = await supabaseQuery;
 
   if (error) {
-    console.error("Erro ao buscar hotéis:", error);
+    console.error("❌ Erro ao buscar hotéis:", error);
     throw new Error("Falha ao buscar hotéis");
   }
 
+  console.log("✅ Hotéis encontrados:", data);
   return data || [];
 }
 
+// lib/services/request-service.ts
 export async function addHotel(hotelData: {
   name: string;
   city: string;
@@ -753,6 +885,16 @@ export async function addHotel(hotelData: {
   website?: string;
 }) {
   const supabase = createClient();
+
+  // 🔥 SE A CIDADE VIER NO FORMATO "Cidade-Estado", EXTRAI SEPARADO
+  let city = hotelData.city.trim();
+  let state = hotelData.state || "";
+
+  if (city.includes("-") && !state) {
+    const parts = city.split("-");
+    city = parts[0].trim();
+    state = parts[1].trim();
+  }
 
   // Verifica se já existe um hotel com o mesmo nome e cidade
   const { data: existing, error: checkError } = await supabase

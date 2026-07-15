@@ -173,7 +173,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
               <select
                 name="status"
                 defaultValue={request.status}
-                className="rounded border border-gray-300 px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="rounded border border-gray-300 px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-black"
               >
                 <option value="pending">📋 A Fazer</option>
                 <option value="in_progress">⏳ Em Andamento</option>
