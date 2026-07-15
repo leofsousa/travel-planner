@@ -1,4 +1,3 @@
-// components/layout/sidebar.tsx
 "use client";
 
 import Link from "next/link";
@@ -14,6 +13,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const menuItems = [
     { href: "/", label: "Dashboard", icon: "📊" },
+    { href: "/control-panel", label: "Painel de Controle", icon: "📈" },
     { href: "/requests/new", label: "Nova Solicitação", icon: "➕" },
     { href: "/guests", label: "Hóspedes", icon: "👥" },
     { href: "/hotels", label: "Hoteis", icon: "🏨"},

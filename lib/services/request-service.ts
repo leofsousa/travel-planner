@@ -232,6 +232,7 @@ export async function createRequest(data: RequestData) {
     );
   }
 }
+// lib/services/request-service.ts
 export async function getRequests() {
   const supabase = createClient();
 
@@ -257,15 +258,30 @@ export async function getRequests() {
             guests (*)
           )
         )
+      ),
+      hotel_planning (
+        id,
+        hotel_name,
+        check_in,
+        check_out,
+        rooms (
+          id,
+          type,
+          periods,
+          room_guests (
+            guests (*)
+          )
+        )
       )
     `)
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Erro ao buscar solicitações:", error);
+    console.error("❌ Erro ao buscar solicitações:", error);
     throw new Error("Falha ao carregar solicitações");
   }
 
+  console.log("✅ Solicitações carregadas com hotel_planning:", data.length);
   return data;
 }
 
