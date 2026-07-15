@@ -36,7 +36,7 @@ function formatDate(dateString: string | null | undefined) {
 export default function DashboardPage() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // 🔍 Estados dos filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
@@ -46,7 +46,7 @@ export default function DashboardPage() {
     try {
       const data = await getRequests();
       console.log("🔍 Dashboard - Dados brutos:", data);
-    console.log("🔍 Dashboard - Datas de início:", data.map(r => r.start_date));
+      console.log("🔍 Dashboard - Datas de início:", data.map(r => r.start_date));
       setRequests(data);
     } catch (error) {
       console.error("Erro ao carregar solicitações:", error);
@@ -86,7 +86,7 @@ export default function DashboardPage() {
   const filteredRequests = useMemo(() => {
     return requests.filter((request) => {
       // Filtro por texto (nome ou local)
-      const matchesSearch = 
+      const matchesSearch =
         request.event_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         request.location.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -103,7 +103,7 @@ export default function DashboardPage() {
         const hasHotel = request.request_hotels?.enabled || false;
         const hasFlight = request.request_flights?.enabled || false;
         const hasCar = request.request_cars?.enabled || false;
-        
+
         if (selectedService === "hotel") matchesService = hasHotel;
         else if (selectedService === "flight") matchesService = hasFlight;
         else if (selectedService === "car") matchesService = hasCar;
@@ -194,20 +194,27 @@ export default function DashboardPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 📅 Mês
               </label>
+
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               >
+                {/* Desaplica o filtro */}
                 <option value="">Todos os meses</option>
-                {availableMonths.map((month) => (
-                  <option key={month} value={month}>
-                    {new Date(month + "-01").toLocaleDateString("pt-BR", {
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </option>
-                ))}
+
+                {availableMonths.map((month) => {
+                  const [year, monthNumber] = month.split("-").map(Number);
+
+                  return (
+                    <option key={month} value={month}>
+                      {new Date(year, monthNumber - 1, 1).toLocaleDateString("pt-BR", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

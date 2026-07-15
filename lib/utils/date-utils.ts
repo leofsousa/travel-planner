@@ -1,27 +1,58 @@
-export function formatDateBR(dateString: string): string {
-    if (!dateString) return "Data não informada";
-    const parts = dateString.split("-");
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+// lib/utils/date-utils.ts
+
+/**
+ * 🔥 EXTRAI O MÊS (YYYY-MM) DE UMA STRING ISO.
+ * Exemplo: "2026-09-17" → "2026-09"
+ */
+export function getMonthFromDate(dateString: string): string {
+  if (!dateString) return "";
+  return dateString.substring(0, 7);
+}
+
+/**
+ * 🔥 COMPARA SE O MÊS DE UMA DATA CORRESPONDE AO MÊS SELECIONADO.
+ * Ambos os valores são strings no formato YYYY-MM.
+ */
+export function matchesMonth(dateString: string, selectedMonth: string): boolean {
+  if (!dateString || !selectedMonth) return false;
+  return getMonthFromDate(dateString) === selectedMonth;
+}
+
+/**
+ * 🔥 GERA A LISTA DE MESES DISPONÍVEIS A PARTIR DE UM ARRAY DE SOLICITAÇÕES.
+ * Retorna um array de objetos com índice e valor do mês.
+ */
+export function getAvailableMonths(requests: any[]): { index: number; value: string; label: string }[] {
+  const monthsSet = new Set<string>();
+  requests.forEach((r) => {
+    if (r.start_date) {
+      const month = getMonthFromDate(r.start_date);
+      if (month) monthsSet.add(month);
     }
-    return dateString;
-  }
-  
-  /**
-   * Extrai o mês no formato YYYY-MM de uma data ISO.
-   */
-  export function getMonthFromDate(dateString: string): string {
-    if (!dateString) return "";
-    return dateString.substring(0, 7);
-  }
-  
-  /**
-   * Calcula o número de dias entre duas datas ISO, sem conversão de fuso.
-   */
-  export function calculateDays(startDate: string, endDate: string): number {
-    const startParts = startDate.split("-").map(Number);
-    const endParts = endDate.split("-").map(Number);
-    const start = new Date(startParts[0], startParts[1] - 1, startParts[2]);
-    const end = new Date(endParts[0], endParts[1] - 1, endParts[2]);
-    return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-  }
+  });
+  const sortedMonths = Array.from(monthsSet).sort();
+  return sortedMonths.map((month, index) => ({
+    index: index + 1, // Começa em 1 para evitar conflito com "all" (0)
+    value: month,
+    label: new Date(month + "-01").toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    }),
+  }));
+}
+
+/**
+ * 🔥 RETORNA O MÊS CORRESPONDENTE A UM ÍNDICE.
+ */
+export function getMonthByIndex(months: { index: number; value: string }[], index: number): string | null {
+  const found = months.find((m) => m.index === index);
+  return found ? found.value : null;
+}
+
+/**
+ * 🔥 RETORNA O ÍNDICE CORRESPONDENTE A UM MÊS.
+ */
+export function getIndexByMonth(months: { index: number; value: string }[], monthValue: string): number | null {
+  const found = months.find((m) => m.value === monthValue);
+  return found ? found.index : null;
+}
