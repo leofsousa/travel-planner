@@ -233,6 +233,7 @@ export async function createRequest(data: RequestData) {
   }
 }
 // lib/services/request-service.ts
+// lib/services/request-service.ts
 export async function getRequests() {
   const supabase = createClient();
 
@@ -248,7 +249,13 @@ export async function getRequests() {
           guests (*)
         )
       ),
-      request_flights (*),
+      request_flights (
+        id,
+        enabled,
+        departure_date,
+        return_date,
+        observations
+      ),
       request_cars (
         id,
         enabled,
@@ -278,15 +285,13 @@ export async function getRequests() {
 
   if (error) {
     console.error("❌ Erro ao buscar solicitações:", error);
-    throw new Error("Falha ao carregar solicitações");
+    throw new Error(`Falha ao carregar solicitações: ${error.message}`);
   }
 
   console.log("✅ Solicitações carregadas com hotel_planning:", data.length);
   return data;
 }
 
-// lib/services/request-service.ts
-// lib/services/request-service.ts
 export async function getRequestById(id: string) {
   const supabase = createClient();
 
