@@ -63,7 +63,7 @@ export default function QuotationCard({ quotation, onRefresh }: QuotationCardPro
 
   return (
     <div
-      className={`border rounded-lg p-3 transition-colors ${
+      className={`border rounded-lg p-3 transition-colors text-black ${
         isSelected
           ? "border-green-400 bg-green-50"
           : "border-gray-200 hover:border-blue-300"
