@@ -1,7 +1,9 @@
+// components/layout/sidebar.tsx
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -10,20 +12,38 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
 
   const menuItems = [
     { href: "/", label: "Dashboard", icon: "📊" },
     { href: "/control-panel", label: "Painel de Controle", icon: "📈" },
     { href: "/requests/new", label: "Nova Solicitação", icon: "➕" },
     { href: "/guests", label: "Hóspedes", icon: "👥" },
-    { href: "/hotels", label: "Hoteis", icon: "🏨"},
+    { href: "/hotels", label: "Hotéis", icon: "🏨" },
   ];
 
   const isActive = (href: string) => pathname === href;
 
+  const handleLogout = async () => {
+    console.log("🔴 Botão Sair clicado");
+    try {
+      await signOut();
+      // O redirecionamento já é feito dentro do signOut
+    } catch (error) {
+      console.error("❌ Erro ao sair:", error);
+      // 🔥 FALLBACK: Se der erro, força o redirecionamento
+      window.location.href = "/login";
+    }
+  };
+  
+  // 🔥 Iniciais do usuário
+  const getUserInitials = () => {
+    if (!user?.email) return "?";
+    return user.email.charAt(0).toUpperCase();
+  };
+
   return (
     <>
-      {/* Overlay para mobile */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
@@ -31,13 +51,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
 
-      {/* 🔥 CORREÇÃO: Menu lateral com sticky */}
       <aside
         className={`
           fixed top-0 left-0 h-full bg-white shadow-lg z-50 transition-transform duration-300
           w-64 p-4 overflow-y-auto
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 md:sticky md:top-0 md:self-start md:w-64 md:shadow-none md:border-r md:border-gray-200
+          md:translate-x-0 md:static md:w-64 md:shadow-none md:border-r md:border-gray-200
           md:h-screen
         `}
       >
@@ -49,6 +68,24 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           >
             ✕
           </button>
+        </div>
+
+        {/* 🔥 PERFIL DO USUÁRIO */}
+        <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-lg">
+          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
+            {getUserInitials()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {user?.email || "Usuário"}
+            </p>
+            <button
+              onClick={() => handleLogout()}
+              className="text-xs text-red-600 hover:text-red-800 font-medium"
+            >
+              Sair
+            </button>
+          </div>
         </div>
 
         <nav className="space-y-2">
