@@ -1,3 +1,4 @@
+// app/control-panel/components/export-button.tsx
 "use client";
 
 import * as XLSX from "xlsx";
@@ -11,6 +12,8 @@ interface Request {
   status: string;
   created_at: string;
   hotel_planning?: any[];
+  request_flights?: any;
+  request_cars?: any;
 }
 
 interface ExportButtonProps {
@@ -20,10 +23,16 @@ interface ExportButtonProps {
 
 export default function ExportButton({ requests, selectedMonth }: ExportButtonProps) {
   const handleExport = () => {
-    // Prepara os dados para a planilha
+    // 🔥 1. CALCULAR TOTAIS
+    let totalCost = 0;
+    let totalCarRentals = 0;
+    let totalFlights = 0;
+
     const data = requests.map((r) => {
-      // Calcula o valor total do hotel
       let hotelCost = 0;
+      let carCount = 0;
+      let flightCount = 0;
+
       if (r.hotel_planning?.[0]?.rooms) {
         const rooms = r.hotel_planning[0].rooms || [];
         rooms.forEach((room: any) => {
@@ -37,6 +46,17 @@ export default function ExportButton({ requests, selectedMonth }: ExportButtonPr
         });
       }
 
+      if (r.request_cars?.enabled && r.request_cars?.car_rentals) {
+        carCount = r.request_cars.car_rentals.length || 0;
+      }
+      if (r.request_flights?.enabled) {
+        flightCount = 1;
+      }
+
+      totalCost += hotelCost;
+      totalCarRentals += carCount;
+      totalFlights += flightCount;
+
       return {
         "Evento": r.event_name,
         "Local": r.location,
@@ -45,17 +65,63 @@ export default function ExportButton({ requests, selectedMonth }: ExportButtonPr
         "Data Início": new Date(r.start_date).toLocaleDateString("pt-BR"),
         "Data Fim": new Date(r.end_date).toLocaleDateString("pt-BR"),
         "Criado em": new Date(r.created_at).toLocaleString("pt-BR"),
-        "Valor Total (R$)": hotelCost.toFixed(2),
+        "Custo Hotel (R$)": hotelCost.toFixed(2),
+        "Qtd. Carros": carCount,
+        "Qtd. Passagens": flightCount,
       };
     });
 
-    // Cria a planilha
+    // 🔥 2. CRIAR PLANILHA
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, "Viagens");
 
-    // Gera o arquivo
-    const fileName = `viagens_${selectedMonth === "all" ? "todos" : selectedMonth}.xlsx`;
+    // 🔥 3. DEFINIR LARGURA DAS COLUNAS
+    ws["!cols"] = [
+      { wch: 30 }, // Evento
+      { wch: 25 }, // Local
+      { wch: 18 }, // Status
+      { wch: 15 }, // Data Início
+      { wch: 15 }, // Data Fim
+      { wch: 25 }, // Criado em
+      { wch: 18 }, // Custo Hotel
+      { wch: 15 }, // Qtd. Carros
+      { wch: 18 }, // Qtd. Passagens
+    ];
+
+    // 🔥 4. ADICIONAR LINHA DE TOTAIS
+    const totalRow = {
+      "Evento": "📊 TOTAL DO MÊS",
+      "Local": "",
+      "Status": "",
+      "Data Início": "",
+      "Data Fim": "",
+      "Criado em": "",
+      "Custo Hotel (R$)": totalCost.toFixed(2),
+      "Qtd. Carros": totalCarRentals,
+      "Qtd. Passagens": totalFlights,
+    };
+
+    // Adiciona a linha de totais no final
+    const totalRowArray = [
+      totalRow["Evento"],
+      totalRow["Local"],
+      totalRow["Status"],
+      totalRow["Data Início"],
+      totalRow["Data Fim"],
+      totalRow["Criado em"],
+      totalRow["Custo Hotel (R$)"],
+      totalRow["Qtd. Carros"],
+      totalRow["Qtd. Passagens"],
+    ];
+    XLSX.utils.sheet_add_aoa(ws, [totalRowArray], { origin: -1 });
+
+    // 🔥 5. NOMEAR A PLANILHA
+    const sheetName = selectedMonth === "all" ? "Todos os meses" : selectedMonth;
+    wb.SheetNames = [sheetName];
+    wb.Sheets = { [sheetName]: ws };
+
+    // 🔥 6. GERAR ARQUIVO
+    const fileName = `relatorio_${selectedMonth === "all" ? "todos" : selectedMonth}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
