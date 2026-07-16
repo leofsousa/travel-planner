@@ -90,46 +90,58 @@ export default function EmailGenerator({
   const groupedRooms = groupRooms(rooms);
 
   const generateEmailBody = () => {
+    // Converte YYYY-MM-DD para Date no horário local
+    const parseLocalDate = (date: string) => {
+      const [year, month, day] = date.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    };
+  
     let roomsSection = groupedRooms
       .map((group) => {
         const typeLabel = roomTypes[group.type] || group.type;
-        const guestsList = group.guests.map((g) => `    - ${g.name}`).join("\n");
-        
+        const guestsList = group.guests
+          .map((g) => `    - ${g.name}`)
+          .join("\n");
+  
         // Gera a lista de períodos
         const periodsList = group.periods
           .map((p) => {
-            const start = new Date(p.startDate);
-            const end = new Date(p.endDate);
-            const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+            const start = parseLocalDate(p.startDate);
+            const end = parseLocalDate(p.endDate);
+  
+            const days = Math.ceil(
+              (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+            );
+  
             return `    ${start.toLocaleDateString("pt-BR")} a ${end.toLocaleDateString("pt-BR")} - ${formatCurrency(p.dailyRate)}/diária (${days} dias)`;
           })
           .join("\n");
-
+  
         return `${group.count > 1 ? `${group.count}x ` : ""}Quarto ${typeLabel}
-  Hóspedes:
-${guestsList}
-  Períodos:
-${periodsList}
-  Total do grupo: ${formatCurrency(group.total)}`;
+    Hóspedes:
+  ${guestsList}
+    Períodos:
+  ${periodsList}
+    Total do grupo: ${formatCurrency(group.total)}`;
       })
       .join("\n\n");
-
+  
     return `Olá, tudo bem?
-
-Segue informações das reservas de hotel realizadas para o evento 
-"${eventName}", na cidade ${location}.
-
-Hotel: ${hotelName}
-Check-in: ${formatDate(checkIn)}
-Check-out: ${formatDate(checkOut)}
-Total de diárias: ${nights}
-
-${roomsSection}
-
-Valor total da reserva: ${formatCurrency(totalCost)}
-
-Atenciosamente,
-[seu nome]`;
+  
+  Segue informações das reservas de hotel realizadas para o evento
+  "${eventName}", na cidade ${location}.
+  
+  Hotel: ${hotelName}
+  Check-in: ${formatDate(checkIn)}
+  Check-out: ${formatDate(checkOut)}
+  Total de diárias: ${nights}
+  
+  ${roomsSection}
+  
+  Valor total da reserva: ${formatCurrency(totalCost)}
+  
+  Atenciosamente,
+  [seu nome]`;
   };
 
   const handleCopy = () => {
