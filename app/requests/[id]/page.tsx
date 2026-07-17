@@ -55,7 +55,14 @@ export default function RequestDetailPage({ params }: { params: Params }) {
   const [isTasksOpen, setIsTasksOpen] = useState(false);
   
   // 🔥 ESTADO PARA COMPARTILHAR OS DADOS DO HOTEL
-  const [hotelSharedData, setHotelSharedData] = useState({
+  const [hotelSharedData, setHotelSharedData] = useState<{
+    hotelName: string;
+    checkIn: string;
+    checkOut: string;
+    rooms: any[]; // ← Qualquer array é aceito
+    nights: number;
+    totalCost: number;
+  }>({
     hotelName: "",
     checkIn: "",
     checkOut: "",

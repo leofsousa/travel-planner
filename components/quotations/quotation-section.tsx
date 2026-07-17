@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import QuotationCard from "./quotation-card";
 import QuotationModal from "./quotation-modal";
 import { getQuotations } from "@/lib/services/request-service";
@@ -50,7 +50,7 @@ export default function QuotationSection({
   useEffect(() => {
     loadQuotations();
   }, [loadQuotations]);
-  
+
   const selectedQuotation = quotations.find((q) => q.is_selected);
 
   const formatCurrency = (value: number, currency: string) => {

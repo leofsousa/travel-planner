@@ -648,32 +648,10 @@ export async function getQuotations(requestId: string) {
 export async function updateQuotationSelection(id: string, isSelected: boolean) {
   const supabase = createClient();
 
-  // Se estiver selecionando, desmarca todas as outras do mesmo tipo
-  if (isSelected) {
-    // Primeiro, busca a cotação para saber o tipo de serviço
-    const { data: quotation, error: fetchError } = await supabase
-      .from("quotations")
-      .select("request_id, service_type")
-      .eq("id", id)
-      .single();
-
-    if (fetchError) throw fetchError;
-
-    // Desmarca todas as outras do mesmo serviço
-    const { error: updateError } = await supabase
-      .from("quotations")
-      .update({ is_selected: false })
-      .eq("request_id", quotation.request_id)
-      .eq("service_type", quotation.service_type)
-      .neq("id", id);
-
-    if (updateError) throw updateError;
-  }
-
-  // Seleciona/desmarca a cotação atual
+  // 🔥 CORREÇÃO: Use o nome correto da coluna no banco
   const { error } = await supabase
     .from("quotations")
-    .update({ is_selected })
+    .update({ is_selected: isSelected }) // ← Use is_selected (com sublinhado)
     .eq("id", id);
 
   if (error) {
