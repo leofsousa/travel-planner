@@ -69,19 +69,19 @@ export default function HotelPlanning({
     // Opcional: preencher outros campos (endereço, telefone, etc.)
   };
 
-  const calculateNights = () => {
+  const calculateNights = useCallback(() => {
     if (!checkIn || !checkOut) return 0;
     const start = new Date(checkIn);
     const end = new Date(checkOut);
     const diffTime = Math.abs(end.getTime() - start.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
+  }, [checkIn, checkOut]);
 
   const nights = calculateNights();
 
-  const calculateTotal = () => {
+  const calculateTotal = useCallback(() => {
     return rooms.reduce((sum, room) => sum + room.total, 0);
-  };
+  }, [rooms]);
 
   // 🔥 NOTIFICAR O PAI SEMPRE QUE OS DADOS MUDAREM
   const handleDataChange = useCallback(() => {
