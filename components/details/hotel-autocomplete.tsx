@@ -146,7 +146,7 @@ export default function HotelAutocomplete({
           ) : (
             // 🔥 MENSAGEM QUANDO NÃO HÁ SUGESTÕES
             <div className="px-4 py-2 text-sm text-gray-500 border-b border-gray-100">
-              Nenhum hotel encontrado para "{value}"
+              Nenhum hotel encontrado para &quot;{value}&quot;
             </div>
           )}
 

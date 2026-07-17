@@ -67,7 +67,7 @@ export default function CarSection({
 
       {rentals.length === 0 ? (
         <p className="text-sm text-gray-500 text-center py-4">
-          Nenhuma locação adicionada. Clique em "Nova locação" para começar.
+         Nenhuma locação adicionada. Clique em &quot;Nova loca&ccedil;&atilde;o&quot; para começar.
         </p>
       ) : (
         <div className="space-y-4">

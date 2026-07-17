@@ -122,7 +122,7 @@ export default function FlightPlanning({
       <div className="space-y-4">
         {legs.length === 0 ? (
           <p className="text-gray-400 text-sm text-center py-8">
-            Nenhum trecho adicionado. Clique em "Adicionar Trecho" para começar.
+            Nenhum trecho adicionado. Clique em &quot;Adicionar Trecho&quot; para começar.
           </p>
         ) : (
           legs.map((leg) => (

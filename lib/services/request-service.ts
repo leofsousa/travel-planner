@@ -968,3 +968,62 @@ export async function addHotel(hotelData: {
 
   return data;
 }
+export async function saveCarPlanning(
+  requestId: string,
+  data: { rentals: any[] }
+) {
+  const supabase = createClient();
+
+  const { data: existing, error: searchError } = await supabase
+    .from("car_planning")
+    .select("id")
+    .eq("request_id", requestId)
+    .maybeSingle();
+
+  if (searchError) throw searchError;
+
+  let planningId: string;
+
+  if (existing) {
+    const { data: updated, error: updateError } = await supabase
+      .from("car_planning")
+      .update({ rentals: data.rentals, updated_at: new Date().toISOString() })
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+    planningId = updated.id;
+  } else {
+    const { data: newPlanning, error: insertError } = await supabase
+      .from("car_planning")
+      .insert({
+        request_id: requestId,
+        rentals: data.rentals,
+      })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+    planningId = newPlanning.id;
+  }
+
+  return { success: true, planningId };
+}
+
+export async function getCarPlanning(requestId: string) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("car_planning")
+    .select("*")
+    .eq("request_id", requestId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Erro ao buscar planejamento de carro:", error);
+    throw new Error("Falha ao carregar planejamento de carro");
+  }
+
+  return data;
+}

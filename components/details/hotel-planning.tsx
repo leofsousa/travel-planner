@@ -303,7 +303,7 @@ export default function HotelPlanning({
 
         {rooms.length === 0 ? (
           <p className="text-gray-400 text-sm text-center py-8">
-            Nenhum quarto adicionado. Clique em "Adicionar Quarto" para começar.
+            Nenhum quarto adicionado. Clique em &quot;Adicionar Quarto&quot; para começar.
           </p>
         ) : (
           <div className="space-y-3">
