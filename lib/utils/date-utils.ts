@@ -56,3 +56,11 @@ export function getIndexByMonth(months: { index: number; value: string }[], mont
   const found = months.find((m) => m.value === monthValue);
   return found ? found.index : null;
 }
+export function formatDateBR(dateString: string): string {
+  if (!dateString) return "Data não informada";
+  const parts = dateString.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateString;
+}
