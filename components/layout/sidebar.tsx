@@ -35,7 +35,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       window.location.href = "/login";
     }
   };
-  
+
   // 🔥 Iniciais do usuário
   const getUserInitials = () => {
     if (!user?.email) return "?";
@@ -56,8 +56,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           fixed top-0 left-0 h-full bg-white shadow-lg z-50 transition-transform duration-300
           w-64 p-4 overflow-y-auto
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 md:static md:w-64 md:shadow-none md:border-r md:border-gray-200
-          md:h-screen
+          md:translate-x-0
+          md:sticky md:top-0 md:self-start
+          md:w-64 md:h-screen md:shadow-none md:border-r md:border-gray-200
         `}
       >
         <div className="flex items-center justify-between mb-8">
@@ -96,10 +97,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               onClick={onClose}
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
-                ${
-                  isActive(item.href)
-                    ? "bg-blue-50 text-blue-700 font-medium"
-                    : "text-gray-700 hover:bg-gray-100"
+                ${isActive(item.href)
+                  ? "bg-blue-50 text-blue-700 font-medium"
+                  : "text-gray-700 hover:bg-gray-100"
                 }
               `}
             >
