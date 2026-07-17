@@ -110,7 +110,7 @@ export default function CarPlanning({ requestId, startDate, endDate }: CarPlanni
       <div className="space-y-4">
         {rentals.length === 0 ? (
           <p className="text-gray-400 text-sm text-center py-8">
-            Nenhuma locação adicionada. Clique em 'Adicionar Locação' para começar.
+            Nenhuma locação adicionada. Clique em &quot;Adicionar Locação&quot; para começar.
           </p>
         ) : (
           rentals.map((rental) => (

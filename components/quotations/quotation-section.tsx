@@ -34,7 +34,7 @@ export default function QuotationSection({
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const loadQuotations = async () => {
+  const loadQuotations = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getQuotations(requestId);
@@ -45,12 +45,12 @@ export default function QuotationSection({
     } finally {
       setLoading(false);
     }
-  };
+  }, [requestId, serviceType]);
 
   useEffect(() => {
     loadQuotations();
-  }, [requestId, serviceType]);
-
+  }, [loadQuotations]);
+  
   const selectedQuotation = quotations.find((q) => q.is_selected);
 
   const formatCurrency = (value: number, currency: string) => {

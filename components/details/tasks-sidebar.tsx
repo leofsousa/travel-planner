@@ -1,7 +1,7 @@
 // components/details/tasks-sidebar.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getTasks, saveTasks, resetTasks } from "@/lib/services/request-service";
 import EmailGenerator from "./email-generator";
 
@@ -50,7 +50,7 @@ export default function TasksSidebar({
   const [loading, setLoading] = useState(true);
   const [showEmail, setShowEmail] = useState(false);
 
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getTasks(requestId);
@@ -60,11 +60,11 @@ export default function TasksSidebar({
     } finally {
       setLoading(false);
     }
-  };
+  }, [requestId]);
 
   useEffect(() => {
     loadTasks();
-  }, [requestId]);
+  }, [loadTasks]);
 
   const saveTasksToDatabase = async (updatedTasks: Task[]) => {
     try {

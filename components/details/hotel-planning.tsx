@@ -7,6 +7,7 @@ import RoomModal from "./room-modal";
 import EmailGenerator from "./email-generator";
 import { saveHotelPlanning, getHotelPlanning } from "@/lib/services/request-service";
 import HotelAutocomplete from "./hotel-autocomplete";
+import { useCallback } from "react";
 
 interface Guest {
   id: string;
@@ -83,7 +84,7 @@ export default function HotelPlanning({
   };
 
   // 🔥 NOTIFICAR O PAI SEMPRE QUE OS DADOS MUDAREM
-  useEffect(() => {
+  const handleDataChange = useCallback(() => {
     if (onDataChange && !isLoading) {
       onDataChange({
         hotelName,
@@ -94,7 +95,11 @@ export default function HotelPlanning({
         totalCost: calculateTotal(),
       });
     }
-  }, [hotelName, checkIn, checkOut, rooms, nights, isLoading]);
+  }, [hotelName, checkIn, checkOut, rooms, nights, isLoading, onDataChange, calculateTotal]);
+
+  useEffect(() => {
+    handleDataChange();
+  }, [handleDataChange]);
 
   // Carregar planejamento salvo
   useEffect(() => {
