@@ -58,13 +58,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={`
-          fixed top-0 left-0 h-full bg-white shadow-lg z-50 transition-transform duration-300
-          w-64 p-4 overflow-y-auto
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0
-          md:sticky md:top-0 md:self-start
-          md:w-64 md:h-screen md:shadow-none md:border-r md:border-gray-200
-        `}
+    fixed top-0 left-0 h-full bg-white shadow-lg transition-transform duration-300
+    w-64 p-4 overflow-y-auto
+    ${isOpen ? "translate-x-0" : "-translate-x-full"}
+    md:translate-x-0
+    md:sticky md:top-0 md:self-start
+    md:w-64 md:h-screen md:shadow-none md:border-r md:border-gray-200
+    z-40 // ← Reduzido para não sobrepor o modal
+  `}
       >
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-xl font-bold text-gray-900">✈️ Travel Planner</h1>

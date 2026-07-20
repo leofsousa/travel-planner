@@ -167,12 +167,13 @@ export default function TasksSidebar({
 
       <aside
         className={`
-          fixed top-0 right-0 h-full bg-white shadow-lg z-50 transition-transform duration-300
-          w-96 p-4 overflow-y-auto
-          ${isOpen ? "translate-x-0" : "translate-x-full"}
-          lg:translate-x-0 lg:static lg:w-96 lg:shadow-none lg:border-l lg:border-gray-200
-          lg:h-screen lg:sticky lg:top-0 lg:self-start
-        `}
+    fixed top-0 right-0 h-full bg-white shadow-lg transition-transform duration-300
+    w-96 p-4 overflow-y-auto
+    ${isOpen ? "translate-x-0" : "translate-x-full"}
+    lg:translate-x-0 lg:static lg:w-96 lg:shadow-none lg:border-l lg:border-gray-200
+    lg:h-screen lg:sticky lg:top-0 lg:self-start
+    z-30 // ← Menor que o modal (z-50)
+  `}
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900">
@@ -204,10 +205,9 @@ export default function TasksSidebar({
               <label
                 className={`
                   flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors
-                  ${
-                    task.completed
-                      ? "bg-green-50 border border-green-200"
-                      : "bg-gray-50 hover:bg-gray-100 border border-transparent"
+                  ${task.completed
+                    ? "bg-green-50 border border-green-200"
+                    : "bg-gray-50 hover:bg-gray-100 border border-transparent"
                   }
                 `}
               >
@@ -218,9 +218,8 @@ export default function TasksSidebar({
                   className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 />
                 <span
-                  className={`text-sm ${
-                    task.completed ? "text-gray-500 line-through" : "text-gray-700"
-                  }`}
+                  className={`text-sm ${task.completed ? "text-gray-500 line-through" : "text-gray-700"
+                    }`}
                 >
                   {task.label}
                 </span>
@@ -233,10 +232,9 @@ export default function TasksSidebar({
                       key={subtask.key}
                       className={`
                         flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors text-sm
-                        ${
-                          subtask.completed
-                            ? "text-gray-400"
-                            : "text-gray-600 hover:bg-gray-50"
+                        ${subtask.completed
+                          ? "text-gray-400"
+                          : "text-gray-600 hover:bg-gray-50"
                         }
                       `}
                     >
