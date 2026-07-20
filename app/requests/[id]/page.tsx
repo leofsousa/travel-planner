@@ -1,9 +1,10 @@
+// app/requests/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getRequestById } from "@/lib/services/request-service";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import HotelPlanning from "@/components/details/hotel-planning";
 import FlightPlanning from "@/components/details/flight-planning";
 import CarPlanning from "@/components/details/car-planning";
@@ -50,16 +51,16 @@ function formatDateTime(date: string) {
 }
 
 export default function RequestDetailPage({ params }: { params: Params }) {
+  const router = useRouter();
   const [request, setRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isTasksOpen, setIsTasksOpen] = useState(false);
   
-  // 🔥 ESTADO PARA COMPARTILHAR OS DADOS DO HOTEL
   const [hotelSharedData, setHotelSharedData] = useState<{
     hotelName: string;
     checkIn: string;
     checkOut: string;
-    rooms: any[]; // ← Qualquer array é aceito
+    rooms: any[];
     nights: number;
     totalCost: number;
   }>({
@@ -89,7 +90,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     loadData();
   }, [params.id]);
 
-  // 🔥 FUNÇÃO PARA RECEBER OS DADOS DO HOTELPLANNING
   const handleHotelDataChange = (data: {
     hotelName: string;
     checkIn: string;
@@ -136,9 +136,13 @@ export default function RequestDetailPage({ params }: { params: Params }) {
         {/* ============================================ */}
         <div className="flex-1 min-w-0">
           <div className="mb-4 flex justify-between items-center">
-            <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
+            {/* 🔥 BOTÃO DE VOLTAR CORRIGIDO */}
+            <button
+              onClick={() => router.push("/")}
+              className="text-blue-600 hover:text-blue-800 text-sm"
+            >
               ← Voltar ao Dashboard
-            </Link>
+            </button>
             <DeleteButton
               requestId={params.id}
               requestName={request.event_name}
@@ -199,7 +203,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
           {/* SEÇÕES DE PLANEJAMENTO */}
           {/* ============================================ */}
 
-          {/* 🏨 HOTEL */}
           {hasHotel && (
             <div className="mt-4">
               <HotelPlanning
@@ -214,7 +217,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
             </div>
           )}
 
-          {/* ✈️ PASSAGEM */}
           {hasFlight && (
             <div className="mt-4">
               <FlightPlanning
@@ -227,7 +229,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
             </div>
           )}
 
-          {/* 🚗 CARRO */}
           {hasCar && (
             <div className="mt-4">
               <CarPlanning
