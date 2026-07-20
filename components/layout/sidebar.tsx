@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 
 interface SidebarProps {
@@ -12,6 +12,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, signOut } = useAuth();
 
   const menuItems = [
@@ -24,14 +25,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const isActive = (href: string) => pathname === href;
 
+  // 🔥 FUNÇÃO DE NAVEGAÇÃO
+  const handleNavigation = (href: string) => {
+    onClose(); // Fecha o menu no mobile
+    router.push(href); // Navega para a página
+  };
+
   const handleLogout = async () => {
     console.log("🔴 Botão Sair clicado");
     try {
       await signOut();
-      // O redirecionamento já é feito dentro do signOut
     } catch (error) {
       console.error("❌ Erro ao sair:", error);
-      // 🔥 FALLBACK: Se der erro, força o redirecionamento
       window.location.href = "/login";
     }
   };
@@ -81,7 +86,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               {user?.email || "Usuário"}
             </p>
             <button
-              onClick={() => handleLogout()}
+              onClick={handleLogout}
               className="text-xs text-red-600 hover:text-red-800 font-medium"
             >
               Sair
@@ -89,14 +94,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
         </div>
 
+        {/* 🔥 MENU COM BUTTON EM VEZ DE LINK */}
         <nav className="space-y-2">
           {menuItems.map((item) => (
-            <Link
+            <button
               key={item.href}
-              href={item.href}
-              onClick={onClose}
+              onClick={() => handleNavigation(item.href)}
               className={`
-                flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
+                w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
                 ${isActive(item.href)
                   ? "bg-blue-50 text-blue-700 font-medium"
                   : "text-gray-700 hover:bg-gray-100"
@@ -105,7 +110,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               <span className="text-xl">{item.icon}</span>
               <span>{item.label}</span>
-            </Link>
+            </button>
           ))}
         </nav>
 

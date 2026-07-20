@@ -108,7 +108,7 @@ export default function RequestForm() {
   };
 
   return (
-    <div className="min-h-screen p-4">
+    <div className="min-h-screen p-4 text-black">
       <form className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6 space-y-6">
         <h2 className="text-2xl font-bold text-gray-900">
           Nova Solicitação de Viagem
