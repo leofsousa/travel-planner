@@ -98,7 +98,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     nights: number;
     totalCost: number;
   }) => {
-    console.log("📝 Dados recebidos do HotelPlanning:", data);
     setHotelSharedData(data);
   };
 
@@ -179,7 +178,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
               </div>
             </div>
 
-            {/* <form action={(formData) => updateStatus(formData, params.id)} className="flex items-center gap-3 pt-2 border-t border-gray-100">
+             <form action={(formData) => updateStatus(formData, params.id)} className="flex items-center gap-3 pt-2 border-t border-gray-100">
               <label className="text-sm font-medium text-gray-700">Status:</label>
               <select
                 name="status"
@@ -196,7 +195,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
               >
                 Atualizar
               </button>
-            </form> */}
+            </form>
           </div>
 
           {/* ============================================ */}
