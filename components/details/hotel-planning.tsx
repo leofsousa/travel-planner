@@ -97,11 +97,11 @@ export default function HotelPlanning({
     }
   }, [hotelName, checkIn, checkOut, rooms, nights, isLoading, onDataChange, calculateTotal]);
 
-  useEffect(() => {
+  /* useEffect(() => {
     handleDataChange();
   }, [handleDataChange]);
+ */
 
-  // Carregar planejamento salvo
   useEffect(() => {
     async function loadPlanning() {
       try {
