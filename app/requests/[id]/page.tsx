@@ -138,7 +138,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
           <div className="mb-4 flex justify-between items-center">
             {/* 🔥 BOTÃO DE VOLTAR CORRIGIDO */}
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.back()}
               className="text-blue-600 hover:text-blue-800 text-sm"
             >
               ← Voltar ao Dashboard
