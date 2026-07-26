@@ -91,7 +91,21 @@ export default function RequestDetailPage({ params }: { params: Params }) {
   }, [params.id]);
 
   const handleHotelDataChange = useCallback((data) => {
-    setHotelSharedData(data);
+    console.log("HotelPlanning render");
+    setHotelSharedData((prev) => {
+      if (
+        prev.hotelName === data.hotelName &&
+        prev.checkIn === data.checkIn &&
+        prev.checkOut === data.checkOut &&
+        prev.nights === data.nights &&
+        prev.totalCost === data.totalCost &&
+        prev.rooms === data.rooms
+      ) {
+        return prev;
+      }
+  
+      return data;
+    });
   }, []);
 
   if (loading) {
