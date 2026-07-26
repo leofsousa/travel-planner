@@ -1,7 +1,7 @@
 // app/requests/[id]/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getRequestById } from "@/lib/services/request-service";
 import { notFound } from "next/navigation";
@@ -90,16 +90,9 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     loadData();
   }, [params.id]);
 
-  const handleHotelDataChange = (data: {
-    hotelName: string;
-    checkIn: string;
-    checkOut: string;
-    rooms: any[];
-    nights: number;
-    totalCost: number;
-  }) => {
+  const handleHotelDataChange = useCallback((data) => {
     setHotelSharedData(data);
-  };
+  }, []);
 
   if (loading) {
     return (
