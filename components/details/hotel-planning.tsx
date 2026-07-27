@@ -1,7 +1,7 @@
 // components/details/hotel-planning.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import RoomCard from "./room-card";
 import RoomModal from "./room-modal";
 import EmailGenerator from "./email-generator";
@@ -63,6 +63,13 @@ export default function HotelPlanning({
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHotel, setSelectedHotel] = useState<any>(null);
+  
+  const initialDataRef = useRef<{
+    hotelName: string;
+    checkIn: string;
+    checkOut: string;
+    rooms: Room[];
+  } | null>(null);
 
   const handleHotelSelected = (hotel: any) => {
     setSelectedHotel(hotel);
@@ -97,10 +104,9 @@ export default function HotelPlanning({
     }
   }, [hotelName, checkIn, checkOut, rooms, nights, isLoading, onDataChange, calculateTotal]);
 
-  /* useEffect(() => {
+  useEffect(() => {
     handleDataChange();
   }, [handleDataChange]);
- */
 
   useEffect(() => {
     async function loadPlanning() {
@@ -108,12 +114,13 @@ export default function HotelPlanning({
         setIsLoading(true);
         const data = await getHotelPlanning(requestId);
         if (data) {
-          setHotelName(data.hotel_name || "");
-          setCheckIn(data.check_in || startDate);
-          setCheckOut(data.check_out || endDate);
+          const name = data.hotel_name || "";
+          const checkin = data.check_in || startDate;
+          const checkout = data.check_out || endDate;
+          let loadedRooms: Room[] = [];
 
           if (data.rooms && data.rooms.length > 0) {
-            const loadedRooms = data.rooms.map((room: any) => {
+            loadedRooms = data.rooms.map((room: any) => {
               const periods = room.periods || [];
               const total = periods.reduce((sum: number, period: any) => {
                 const start = new Date(period.startDate);
@@ -136,6 +143,24 @@ export default function HotelPlanning({
             });
             setRooms(loadedRooms);
           }
+
+          setHotelName(name);
+          setCheckIn(checkin);
+          setCheckOut(checkout);
+
+          initialDataRef.current = {
+            hotelName: name,
+            checkIn: checkin,
+            checkOut: checkout,
+            rooms: loadedRooms,
+          };
+        } else {
+          initialDataRef.current = {
+            hotelName: "",
+            checkIn: startDate,
+            checkOut: endDate,
+            rooms: [],
+          };
         }
       } catch (error) {
         console.error("Erro ao carregar planejamento:", error);
@@ -148,7 +173,15 @@ export default function HotelPlanning({
 
   // Salvar automaticamente quando houver mudanças
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !initialDataRef.current) return;
+
+    const isDifferent =
+      hotelName !== initialDataRef.current.hotelName ||
+      checkIn !== initialDataRef.current.checkIn ||
+      checkOut !== initialDataRef.current.checkOut ||
+      JSON.stringify(rooms) !== JSON.stringify(initialDataRef.current.rooms);
+
+    if (!isDifferent) return;
 
     const saveTimeout = setTimeout(async () => {
       try {
@@ -162,6 +195,12 @@ export default function HotelPlanning({
             guests: room.guests.map((g) => g.id),
           })),
         });
+        initialDataRef.current = {
+          hotelName,
+          checkIn,
+          checkOut,
+          rooms,
+        };
       } catch (error) {
         console.error("Erro ao salvar planejamento:", error);
       }

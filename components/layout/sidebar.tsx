@@ -32,7 +32,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const handleLogout = async () => {
-    console.log("🔴 Botão Sair clicado");
     try {
       await signOut();
     } catch (error) {

@@ -22,9 +22,7 @@ interface Request {
 
 function getMonthFromDate(dateString: string): string {
     if (!dateString) return "";
-    const result = dateString.substring(0, 7);
-    console.log("📅 getMonthFromDate:", dateString, "→", result);
-    return result;
+    return dateString.substring(0, 7);
 }
 function calculateMetrics(requests: Request[]) {
     let totalCost = 0;
@@ -38,9 +36,6 @@ function calculateMetrics(requests: Request[]) {
     let totalHotelRooms = 0;
 
     requests.forEach((r) => {
-        console.log("🔍 Request:", r.event_name);
-        console.log("🔍 hotel_planning:", r.hotel_planning);
-        console.log("🔍 rooms:", r.hotel_planning?.[0]?.rooms);
         if (r.status === "pending") pending++;
         else if (r.status === "in_progress") inProgress++;
         else if (r.status === "completed") completed++;
@@ -126,29 +121,15 @@ export default function ControlPanelPage() {
         }
         loadData();
     }, []);
-    useEffect(() => {
-        console.log("🔄 selectedMonth mudou para:", selectedMonth);
-        // Força a recalculação do filteredRequests
-        const filtered = selectedMonth === "all"
-            ? allRequests
-            : allRequests.filter((r) => {
-                if (!r.start_date) return false;
-                const month = getMonthFromDate(r.start_date);
-                return month === selectedMonth;
-            });
-        console.log("📊 filteredRequests após mudança:", filtered.length);
-    }, [selectedMonth, allRequests]);
+
 
     const filteredRequests = selectedMonth === "all"
         ? allRequests
         : allRequests.filter((r) => {
             if (!r.start_date) return false;
             const month = getMonthFromDate(r.start_date);
-            console.log("🔍 Filtrando:", r.event_name, "start_date:", r.start_date, "month:", month, "selectedMonth:", selectedMonth);
             return month === selectedMonth;
         });
-
-    console.log("📊 filteredRequests:", filteredRequests.length);
     const metrics = calculateMetrics(filteredRequests);
     const availableMonths = getAvailableMonths(allRequests);
 
@@ -179,10 +160,7 @@ export default function ControlPanelPage() {
                     <div className="flex flex-wrap items-center gap-3">
                         <MonthlyFilter
                             selectedMonth={selectedMonth}
-                            onMonthChange={(month) => {
-                                console.log("📅 page.tsx - onMonthChange:", month);
-                                setSelectedMonth(month);
-                            }}
+                            onMonthChange={setSelectedMonth}
                             availableMonths={availableMonths}
                         />
                         <ExportButton

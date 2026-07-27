@@ -45,8 +45,6 @@ export default function DashboardPage() {
   const loadRequests = async () => {
     try {
       const data = await getRequests();
-      console.log("🔍 Dashboard - Dados brutos:", data);
-      console.log("🔍 Dashboard - Datas de início:", data.map(r => r.start_date));
       setRequests(data);
     } catch (error) {
       console.error("Erro ao carregar solicitações:", error);

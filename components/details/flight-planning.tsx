@@ -1,7 +1,7 @@
 // components/details/flight-planning.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getFlightPlanning, saveFlightPlanning } from "@/lib/services/request-service";
@@ -40,15 +40,17 @@ export default function FlightPlanning({
   const [loading, setLoading] = useState(true);
   const [editingLeg, setEditingLeg] = useState<FlightLeg | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const initialLegsRef = useRef<FlightLeg[] | null>(null);
 
   // Carregar dados salvos
   useEffect(() => {
     async function loadData() {
       try {
         const data = await getFlightPlanning(requestId);
-        if (data) {
-          setLegs(data.legs || []);
-        }
+        const loadedLegs = data?.legs || [];
+        setLegs(loadedLegs);
+        initialLegsRef.current = loadedLegs;
       } catch (error) {
         console.error("Erro ao carregar planejamento de voo:", error);
       } finally {
@@ -60,11 +62,15 @@ export default function FlightPlanning({
 
   // Salvar automaticamente
   useEffect(() => {
-    if (loading) return;
+    if (loading || initialLegsRef.current === null) return;
+
+    const isDifferent = JSON.stringify(legs) !== JSON.stringify(initialLegsRef.current);
+    if (!isDifferent) return;
 
     const saveTimeout = setTimeout(async () => {
       try {
         await saveFlightPlanning(requestId, { legs });
+        initialLegsRef.current = legs;
       } catch (error) {
         console.error("Erro ao salvar planejamento de voo:", error);
       }

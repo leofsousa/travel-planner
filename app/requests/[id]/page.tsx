@@ -1,7 +1,7 @@
 // app/requests/[id]/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { getRequestById } from "@/lib/services/request-service";
 import { notFound } from "next/navigation";
@@ -91,7 +91,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
   }, [params.id]);
 
   const handleHotelDataChange = useCallback((data) => {
-    console.log("HotelPlanning render");
     setHotelSharedData((prev) => {
       if (
         prev.hotelName === data.hotelName &&
@@ -128,11 +127,13 @@ export default function RequestDetailPage({ params }: { params: Params }) {
   const hasFlight = flightData?.enabled === true;
   const hasCar = carData?.enabled === true;
 
-  const availableGuests = hotelData?.hotel_guests?.map((hg: any) => ({
-    id: hg.guests.id,
-    name: hg.guests.full_name,
-    document: hg.guests.document,
-  })) || [];
+  const availableGuests = useMemo(() => {
+    return hotelData?.hotel_guests?.map((hg: any) => ({
+      id: hg.guests.id,
+      name: hg.guests.full_name,
+      document: hg.guests.document,
+    })) || [];
+  }, [hotelData]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">

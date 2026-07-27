@@ -45,20 +45,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    console.log("🔴 Tentando fazer logout...");
-    
     try {
       await supabase.auth.signOut();
-      console.log("✅ Logout realizado com sucesso!");
     } catch (error) {
       console.warn("⚠️ Erro no logout (ignorado):", error);
     }
     
-    // 🔥 LIMPA O ESTADO LOCAL
+    // Limpa o estado local
     setSession(null);
     setUser(null);
-    
-    console.log("🔴 Estado limpo, redirecionando...");
   };
 
   return (

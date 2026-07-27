@@ -1,7 +1,7 @@
 // components/details/car-planning.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getCarPlanning, saveCarPlanning } from "@/lib/services/request-service";
 import CarRentalCard from "./car-rental-card";
 import CarRentalModal from "./car-rental-modal";
@@ -30,14 +30,16 @@ export default function CarPlanning({ requestId, startDate, endDate }: CarPlanni
   const [loading, setLoading] = useState(true);
   const [editingRental, setEditingRental] = useState<CarRental | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const initialRentalsRef = useRef<CarRental[] | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
         const data = await getCarPlanning(requestId);
-        if (data) {
-          setRentals(data.rentals || []);
-        }
+        const loadedRentals = data?.rentals || [];
+        setRentals(loadedRentals);
+        initialRentalsRef.current = loadedRentals;
       } catch (error) {
         console.error("Erro ao carregar planejamento de carro:", error);
       } finally {
@@ -48,11 +50,15 @@ export default function CarPlanning({ requestId, startDate, endDate }: CarPlanni
   }, [requestId]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || initialRentalsRef.current === null) return;
+
+    const isDifferent = JSON.stringify(rentals) !== JSON.stringify(initialRentalsRef.current);
+    if (!isDifferent) return;
 
     const saveTimeout = setTimeout(async () => {
       try {
         await saveCarPlanning(requestId, { rentals });
+        initialRentalsRef.current = rentals;
       } catch (error) {
         console.error("Erro ao salvar planejamento de carro:", error);
       }
