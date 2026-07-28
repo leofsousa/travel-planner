@@ -22,12 +22,81 @@ interface EmailModalProps {
 export default function EmailModal({ isOpen, onClose, data }: EmailModalProps) {
   const [activeTab, setActiveTab] = useState<"financeiro" | "colaborador">("financeiro");
 
+  // 🔥 FUNÇÃO PARA ATUALIZAR O PREVIEW EM TEMPO REAL
+  const updatePreview = () => {
+    const checkbox50 = document.getElementById("pagamento50") as HTMLInputElement;
+    const checkboxPersonalizado = document.getElementById("pagamentoPersonalizado") as HTMLInputElement;
+    const inputValor = document.querySelector('input[placeholder="R$ 0,00"]') as HTMLInputElement;
+    const previewEl = document.getElementById("preview-email");
+    const resumoEl = document.getElementById("resumo-pagamento");
+
+    if (!previewEl) return;
+
+    let pagamentoTexto = "";
+    let valorAntecipado = 0;
+    let valorRestante = 0;
+
+    if (checkbox50?.checked) {
+      valorAntecipado = data.totalCost / 2;
+      valorRestante = data.totalCost - valorAntecipado;
+      pagamentoTexto = `
+⚠️ Pagamento Antecipado:
+Já foi pago R$ ${valorAntecipado.toFixed(2)} (50% do valor total).
+Restam R$ ${valorRestante.toFixed(2)} a serem pagos no check-in.`;
+    } else if (checkboxPersonalizado?.checked) {
+      valorAntecipado = parseFloat(inputValor?.value) || 0;
+      valorRestante = data.totalCost - valorAntecipado;
+      if (valorAntecipado > 0) {
+        pagamentoTexto = `
+⚠️ Pagamento Antecipado:
+Já foi pago R$ ${valorAntecipado.toFixed(2)} (valor personalizado).
+Restam R$ ${valorRestante.toFixed(2)} a serem pagos no check-in.`;
+      }
+    }
+
+    // Atualiza o resumo do pagamento
+    if (resumoEl) {
+      if (valorAntecipado > 0) {
+        resumoEl.innerHTML = `
+          <p><span className="font-medium">Antecipado:</span> R$ ${valorAntecipado.toFixed(2)}</p>
+          <p><span className="font-medium">Restante:</span> R$ ${valorRestante.toFixed(2)}</p>
+        `;
+      } else {
+        resumoEl.innerHTML = `<p className="text-gray-600">Nenhum pagamento antecipado selecionado.</p>`;
+      }
+    }
+
+    // Atualiza o preview do email
+    const roomsSection = data.rooms
+      .map((room) => {
+        const guestsList = room.guests.map((g: any) => g.name).join(", ");
+        return `- ${room.type} - ${guestsList} - R$ ${room.total.toFixed(2)}`;
+      })
+      .join("\n");
+
+    previewEl.textContent = `Olá,
+
+Segue as informações da reserva de hotel para o evento "${data.eventName}":
+
+Hotel: ${data.hotelName}
+Check-in: ${new Date(data.checkIn).toLocaleDateString("pt-BR")}
+Check-out: ${new Date(data.checkOut).toLocaleDateString("pt-BR")}
+Total de diárias: ${data.nights}
+
+Quartos e Hóspedes:
+${roomsSection}
+
+Valor total da reserva: R$ ${data.totalCost.toFixed(2)}
+${pagamentoTexto}
+Atenciosamente,
+[seu nome]`;
+  };
+
   if (!isOpen) return null;
 
-  // 🔥 VERIFICA SE FALTAM DADOS PARA O EMAIL
-  const missingHotelName = !data.hotelName || data.hotelName.trim() === "";
+  // Verifica se faltam dados
+  const missingHotelName = !data.hotelName || data.hotelName.trim() === "" || data.hotelName === "Hotel não informado";
   const missingRooms = !data.rooms || data.rooms.length === 0;
-
   const hasMissingData = missingHotelName || missingRooms;
 
   return (
@@ -118,6 +187,7 @@ export default function EmailModal({ isOpen, onClose, data }: EmailModalProps) {
                     type="checkbox"
                     id="pagamento50"
                     className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    onChange={updatePreview}
                   />
                   <label htmlFor="pagamento50" className="text-sm text-gray-700">
                     50% do valor total (R$ {(data.totalCost / 2).toFixed(2)})
@@ -129,6 +199,7 @@ export default function EmailModal({ isOpen, onClose, data }: EmailModalProps) {
                     type="checkbox"
                     id="pagamentoPersonalizado"
                     className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    onChange={updatePreview}
                   />
                   <label htmlFor="pagamentoPersonalizado" className="text-sm text-gray-700">
                     Valor personalizado:
@@ -139,28 +210,34 @@ export default function EmailModal({ isOpen, onClose, data }: EmailModalProps) {
                     step="0.01"
                     placeholder="R$ 0,00"
                     className="w-32 rounded border border-gray-300 px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    onChange={updatePreview}
                   />
+                </div>
+
+                {/* Resumo do pagamento */}
+                <div id="resumo-pagamento" className="mt-2 p-2 bg-blue-50 rounded border border-blue-200 text-sm">
+                  <p className="text-gray-600">Nenhum pagamento antecipado selecionado.</p>
                 </div>
               </div>
 
               {/* 🔥 Preview do Email */}
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Preview do Email:</h4>
-                <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans">
+                <pre id="preview-email" className="text-sm text-gray-600 whitespace-pre-wrap font-sans">
                   {`Olá,
 
 Segue as informações da reserva de hotel para o evento "${data.eventName}":
 
-Hotel: ${data.hotelName || "[NOME DO HOTEL NÃO INFORMADO]"}
-Check-in: ${data.checkIn ? new Date(data.checkIn).toLocaleDateString("pt-BR") : "[DATA NÃO INFORMADA]"}
-Check-out: ${data.checkOut ? new Date(data.checkOut).toLocaleDateString("pt-BR") : "[DATA NÃO INFORMADA]"}
-Total de diárias: ${data.nights || 0}
+Hotel: ${data.hotelName}
+Check-in: ${new Date(data.checkIn).toLocaleDateString("pt-BR")}
+Check-out: ${new Date(data.checkOut).toLocaleDateString("pt-BR")}
+Total de diárias: ${data.nights}
 
 Quartos e Hóspedes:
-${data.rooms && data.rooms.length > 0 ? data.rooms.map((room) => {
+${data.rooms.map((room) => {
   const guestsList = room.guests.map((g: any) => g.name).join(", ");
   return `- ${room.type} - ${guestsList} - R$ ${room.total.toFixed(2)}`;
-}).join("\n") : "[NENHUM QUARTO ADICIONADO]"}
+}).join("\n")}
 
 Valor total da reserva: R$ ${data.totalCost.toFixed(2)}
 
