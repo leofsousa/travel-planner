@@ -120,21 +120,20 @@ export default function RequestDetailPage({ params }: { params: Params }) {
   }
 
   const hotelData = request.request_hotels?.[0];
-  const flightData = request.request_flights?.[0];
-  const carData = request.request_cars?.[0];
+const flightData = request.request_flights?.[0];
+const carData = request.request_cars?.[0];
 
-  const hasHotel = hotelData?.enabled === true;
-  const hasFlight = flightData?.enabled === true;
-  const hasCar = carData?.enabled === true;
+const hasHotel = hotelData?.enabled === true;
+const hasFlight = flightData?.enabled === true;
+const hasCar = carData?.enabled === true;
 
-  const availableGuests = useMemo(() => {
-    return hotelData?.hotel_guests?.map((hg: any) => ({
-      id: hg.guests.id,
-      name: hg.guests.full_name,
-      document: hg.guests.document,
-    })) || [];
-  }, [hotelData]);
-
+const availableGuests =
+  hotelData?.hotel_guests?.map((hg: any) => ({
+    id: hg.guests.id,
+    name: hg.guests.full_name,
+    document: hg.guests.document,
+  })) ?? [];
+  
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-6xl mx-auto flex gap-6">
