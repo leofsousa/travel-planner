@@ -1,7 +1,7 @@
 // app/requests/[id]/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getRequestById } from "@/lib/services/request-service";
 import { notFound } from "next/navigation";
@@ -55,7 +55,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
   const [request, setRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isTasksOpen, setIsTasksOpen] = useState(false);
-  
+
   const [hotelSharedData, setHotelSharedData] = useState<{
     hotelName: string;
     checkIn: string;
@@ -120,22 +120,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     });
   }, []);
 
-  const hotelData = request.request_hotels?.[0];
-  const flightData = request.request_flights?.[0];
-  const carData = request.request_cars?.[0];
-  
-  const hasHotel = hotelData?.enabled === true;
-  const hasFlight = flightData?.enabled === true;
-  const hasCar = carData?.enabled === true;
-  
-  const availableGuests =
-    hotelData?.hotel_guests?.map((hg: any) => ({
-      id: hg.guests.id,
-      name: hg.guests.full_name,
-      document: hg.guests.document,
-    })) ?? [];
-    
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 p-4 flex items-center justify-center">
@@ -148,18 +132,29 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     notFound();
   }
 
-  
+  // 🔥 EXTRAÇÃO DOS DADOS MOVIDA PARA DEPOIS DA VERIFICAÇÃO
+  const hotelData = request.request_hotels?.[0];
+  const flightData = request.request_flights?.[0];
+  const carData = request.request_cars?.[0];
+
+  const hasHotel = hotelData?.enabled === true;
+  const hasFlight = flightData?.enabled === true;
+  const hasCar = carData?.enabled === true;
+
+  const availableGuests = hotelData?.hotel_guests?.map((hg: any) => ({
+    id: hg.guests.id,
+    name: hg.guests.full_name,
+    document: hg.guests.document,
+  })) || [];
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-6xl mx-auto flex gap-6">
-        {/* ============================================ */}
-        {/* CONTEÚDO PRINCIPAL */}
-        {/* ============================================ */}
         <div className="flex-1 min-w-0">
+          {/* 🔥 BOTÃO DE VOLTAR */}
           <div className="mb-4 flex justify-between items-center">
-            {/* 🔥 BOTÃO DE VOLTAR CORRIGIDO */}
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/")}
               className="text-blue-600 hover:text-blue-800 text-sm"
             >
               ← Voltar ao Dashboard
@@ -200,7 +195,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
               </div>
             </div>
 
-             <form action={(formData) => updateStatus(formData, params.id)} className="flex items-center gap-3 pt-2 border-t border-gray-100">
+            <form action={(formData) => updateStatus(formData, params.id)} className="flex items-center gap-3 pt-2 border-t border-gray-100">
               <label className="text-sm font-medium text-gray-700">Status:</label>
               <select
                 name="status"
@@ -264,7 +259,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
           {/* INFORMAÇÕES DA SOLICITAÇÃO E COTAÇÕES */}
           {/* ============================================ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {/* INFORMAÇÕES DA SOLICITAÇÃO */}
             <div className="bg-white rounded-lg shadow-lg p-4">
               <h2 className="font-semibold text-gray-900 mb-2">📋 Informações da Solicitação</h2>
               <div className="space-y-3 text-sm">
@@ -356,7 +350,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
               </div>
             </div>
 
-            {/* COTAÇÕES */}
             <div className="space-y-4">
               <QuotationSection
                 requestId={params.id}
@@ -387,17 +380,8 @@ export default function RequestDetailPage({ params }: { params: Params }) {
           requestId={params.id}
           isOpen={isTasksOpen}
           onClose={() => setIsTasksOpen(false)}
-          eventName={request.event_name}
-          location={request.location}
-          hotelName={hotelSharedData.hotelName}
-          checkIn={hotelSharedData.checkIn}
-          checkOut={hotelSharedData.checkOut}
-          rooms={hotelSharedData.rooms}
-          nights={hotelSharedData.nights}
-          totalCost={hotelSharedData.totalCost}
         />
 
-        {/* Botão flutuante para abrir tasks no mobile */}
         <button
           onClick={() => setIsTasksOpen(true)}
           className="lg:hidden fixed bottom-4 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg z-20 hover:bg-blue-700 transition-colors"

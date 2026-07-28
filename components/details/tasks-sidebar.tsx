@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getTasks, saveTasks, resetTasks } from "@/lib/services/request-service";
-import EmailGenerator from "./email-generator";
 
 interface Subtask {
   key: string;
@@ -22,33 +21,11 @@ interface TasksSidebarProps {
   requestId: string;
   isOpen: boolean;
   onClose: () => void;
-  // 🔥 DADOS PARA O EMAIL
-  eventName: string;
-  location: string;
-  hotelName: string;
-  checkIn: string;
-  checkOut: string;
-  rooms: any[];
-  nights: number;
-  totalCost: number;
 }
 
-export default function TasksSidebar({
-  requestId,
-  isOpen,
-  onClose,
-  eventName,
-  location,
-  hotelName,
-  checkIn,
-  checkOut,
-  rooms,
-  nights,
-  totalCost,
-}: TasksSidebarProps) {
+export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSidebarProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showEmail, setShowEmail] = useState(false);
 
   const loadTasks = useCallback(async () => {
     try {
@@ -167,13 +144,12 @@ export default function TasksSidebar({
 
       <aside
         className={`
-    fixed top-0 right-0 h-full bg-white shadow-lg transition-transform duration-300
-    w-96 p-4 overflow-y-auto
-    ${isOpen ? "translate-x-0" : "translate-x-full"}
-    lg:translate-x-0 lg:static lg:w-96 lg:shadow-none lg:border-l lg:border-gray-200
-    lg:h-screen lg:sticky lg:top-0 lg:self-start
-    z-30 // ← Menor que o modal (z-50)
-  `}
+          fixed top-0 right-0 h-full bg-white shadow-lg z-50 transition-transform duration-300
+          w-96 p-4 overflow-y-auto
+          ${isOpen ? "translate-x-0" : "translate-x-full"}
+          lg:translate-x-0 lg:static lg:w-96 lg:shadow-none lg:border-l lg:border-gray-200
+          lg:h-screen lg:sticky lg:top-0 lg:self-start
+        `}
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900">
@@ -205,9 +181,10 @@ export default function TasksSidebar({
               <label
                 className={`
                   flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors
-                  ${task.completed
-                    ? "bg-green-50 border border-green-200"
-                    : "bg-gray-50 hover:bg-gray-100 border border-transparent"
+                  ${
+                    task.completed
+                      ? "bg-green-50 border border-green-200"
+                      : "bg-gray-50 hover:bg-gray-100 border border-transparent"
                   }
                 `}
               >
@@ -218,8 +195,9 @@ export default function TasksSidebar({
                   className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 />
                 <span
-                  className={`text-sm ${task.completed ? "text-gray-500 line-through" : "text-gray-700"
-                    }`}
+                  className={`text-sm ${
+                    task.completed ? "text-gray-500 line-through" : "text-gray-700"
+                  }`}
                 >
                   {task.label}
                 </span>
@@ -232,9 +210,10 @@ export default function TasksSidebar({
                       key={subtask.key}
                       className={`
                         flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors text-sm
-                        ${subtask.completed
-                          ? "text-gray-400"
-                          : "text-gray-600 hover:bg-gray-50"
+                        ${
+                          subtask.completed
+                            ? "text-gray-400"
+                            : "text-gray-600 hover:bg-gray-50"
                         }
                       `}
                     >
@@ -263,33 +242,6 @@ export default function TasksSidebar({
             🔄 Reiniciar tarefas
           </button>
         </div>
-
-        {/* 🔥 EMAIL GENERATOR - FIXO NA PARTE INFERIOR */}
-        {rooms && rooms.length > 0 && hotelName && (
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <button
-              onClick={() => setShowEmail(!showEmail)}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              {showEmail ? "📧 Ocultar Email" : "📧 Gerar Email da Reserva"}
-            </button>
-
-            {showEmail && (
-              <div className="mt-4">
-                <EmailGenerator
-                  eventName={eventName}
-                  location={location}
-                  hotelName={hotelName}
-                  checkIn={checkIn}
-                  checkOut={checkOut}
-                  rooms={rooms}
-                  nights={nights}
-                  totalCost={totalCost}
-                />
-              </div>
-            )}
-          </div>
-        )}
       </aside>
     </>
   );
