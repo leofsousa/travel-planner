@@ -7,20 +7,7 @@ import HotelSection from "./sections/hotel-section";
 import FlightSection from "./sections/flight-section";
 import CarSection from "./sections/car-section";
 import { createRequest } from "@/lib/services/request-service";
-
-interface CarDriver {
-  id: string;
-  name: string;
-  document: string;
-}
-
-interface CarRental {
-  id: string;
-  startDate: string;
-  endDate: string;
-  drivers: CarDriver[];
-  observations: string;
-}
+import type { HotelGuest, CarDriver, CarRental } from "@/types/request";
 
 interface Request {
   eventName: string;
@@ -32,7 +19,7 @@ interface Request {
     guests: {
       id: string;
       name: string;
-      document: string;
+      document?: string; // ← TORNE OPCIONAL
     }[];
     observations: string;
   };

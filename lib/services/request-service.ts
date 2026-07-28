@@ -1,25 +1,7 @@
 // lib/services/request-service.ts
 import { createClient } from "@/lib/supabase/client";
+import type { HotelGuest, CarDriver, CarRental } from "@/types/request";
 
-interface HotelGuest {
-  id: string;
-  name: string;
-  document: string;
-}
-
-interface CarDriver {
-  id: string;
-  name: string;
-  document: string;
-}
-
-interface CarRental {
-  id: string;
-  startDate: string;
-  endDate: string;
-  drivers: CarDriver[];
-  observations: string;
-}
 
 interface RequestData {
   eventName: string;

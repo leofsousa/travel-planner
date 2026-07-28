@@ -1,4 +1,3 @@
-// app/guests/components/guest-table.tsx
 "use client";
 
 import { useState } from "react";
@@ -18,10 +17,11 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
+  // 🔥 CORREÇÃO: Verifica se document existe antes de usar .includes()
   const filteredGuests = guests.filter(
     (guest) =>
       guest.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      guest.document.includes(searchTerm) ||
+      (guest.document && guest.document.includes(searchTerm)) ||
       (guest.email && guest.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 

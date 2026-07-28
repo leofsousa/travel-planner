@@ -82,7 +82,7 @@ export default function HotelPlanning({
   useEffect(() => {
     const emails = extractGuestEmails(rooms);
     setGuestEmails(emails);
-  }, [rooms]);
+  }, [rooms, extractGuestEmails]);
 
   const initialDataRef = useRef<{
     hotelName: string;

@@ -3,20 +3,7 @@
 
 import { useState } from "react";
 import CarRentalItem from "./car-rental-item";
-
-interface CarDriver {
-  id: string;
-  name: string;
-  document: string;
-}
-
-interface CarRental {
-  id: string;
-  startDate: string;
-  endDate: string;
-  drivers: CarDriver[];
-  observations: string;
-}
+import type { HotelGuest, CarDriver, CarRental } from "@/types/request";
 
 interface CarSectionProps {
   enabled: boolean;
