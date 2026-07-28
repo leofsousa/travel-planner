@@ -9,7 +9,8 @@ import type { Guest } from "@/types/guest";
 interface HotelGuest {
   id: string;
   name: string;
-  document: string;
+  document?: string; // ← Opcional, mas mantido para compatibilidade
+  email?: string;
 }
 
 interface HotelSectionProps {
@@ -29,12 +30,9 @@ export default function HotelSection({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Estados para criar novo hóspede manualmente
   const [newGuestName, setNewGuestName] = useState("");
-  const [newGuestDocument, setNewGuestDocument] = useState("");
+  const [newGuestEmail, setNewGuestEmail] = useState("");
 
-  // Carrega hóspedes do Supabase
   const loadGuests = async () => {
     try {
       setLoading(true);
@@ -42,9 +40,7 @@ export default function HotelSection({
       setAvailableGuests(data);
     } catch (error) {
       console.error("Erro ao carregar hóspedes:", error);
-      // Mensagem mais amigável
-      const errorMessage = error instanceof Error ? error.message : "Falha ao carregar lista de hóspedes";
-      alert(`⚠️ ${errorMessage}\n\nVerifique o console para mais detalhes.`);
+      alert(error instanceof Error ? error.message : "Falha ao carregar lista de hóspedes");
       setAvailableGuests([]);
     } finally {
       setLoading(false);
@@ -55,64 +51,49 @@ export default function HotelSection({
     loadGuests();
   }, []);
 
-  // Filtra hóspedes disponíveis (que não estão na lista)
+  // 🔥 Remove a exibição do documento nas sugestões
   const filteredGuests = availableGuests
     .filter((guest) => !guests.some((g) => g.id === guest.id))
     .filter((guest) =>
       guest.full_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  // Adiciona hóspede existente (do autocomplete)
   const addExistingGuest = (guest: Guest) => {
     const newGuest: HotelGuest = {
       id: guest.id,
       name: guest.full_name,
       document: guest.document,
+      email: guest.email,
     };
     onGuestsChange([...guests, newGuest]);
     setSearchTerm("");
   };
 
-  // Adiciona novo hóspede (criado manualmente) com INSERT no Supabase
   const addNewGuest = async () => {
-    // Validação
-    if (!newGuestName.trim() || !newGuestDocument.trim()) {
-      alert("Preencha nome e documento do hóspede");
-      return;
-    }
-
-    // Verifica duplicata na lista local
-    const existsLocal = guests.some((g) => g.document === newGuestDocument.trim());
-    if (existsLocal) {
-      alert("Já existe um hóspede com este documento na lista");
+    if (!newGuestName.trim()) {
+      alert("Preencha o nome do hóspede");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Insere no Supabase
-      const createdGuest = await createGuest(
-        newGuestName.trim(),
-        newGuestDocument.trim()
-      );
+      const createdGuest = await createGuest({
+        full_name: newGuestName.trim(),
+        document: undefined, // ← SEM DOCUMENTO
+        email: newGuestEmail.trim() || undefined,
+      });
 
-      // Adiciona à lista local
       const newGuest: HotelGuest = {
         id: createdGuest.id,
         name: createdGuest.full_name,
         document: createdGuest.document,
+        email: createdGuest.email,
       };
       onGuestsChange([...guests, newGuest]);
-
-      // Atualiza a lista de hóspedes disponíveis
       await loadGuests();
-
-      // Limpa os campos
       setNewGuestName("");
-      setNewGuestDocument("");
-
-      // Feedback de sucesso
+      setNewGuestEmail("");
       alert(`✅ Hóspede "${createdGuest.full_name}" cadastrado com sucesso!`);
     } catch (error) {
       console.error("Erro ao criar hóspede:", error);
@@ -144,9 +125,10 @@ export default function HotelSection({
             className="bg-white text-gray-900"
           />
           <Input
-            placeholder="Documento (CPF/CNPJ)"
-            value={newGuestDocument}
-            onChange={(e) => setNewGuestDocument(e.target.value)}
+            placeholder="E-mail (opcional)"
+            type="email"
+            value={newGuestEmail}
+            onChange={(e) => setNewGuestEmail(e.target.value)}
             disabled={isSubmitting}
             className="bg-white text-gray-900"
           />
@@ -189,7 +171,10 @@ export default function HotelSection({
                 className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors"
               >
                 <div className="font-medium text-gray-900">{guest.full_name}</div>
-                <div className="text-sm text-gray-500">{guest.document}</div>
+                {/* 🔥 DOCUMENTO REMOVIDO DAS SUGESTÕES */}
+                {guest.email && (
+                  <div className="text-sm text-gray-500">{guest.email}</div>
+                )}
               </button>
             ))}
           </div>
@@ -218,7 +203,10 @@ export default function HotelSection({
               >
                 <div>
                   <p className="font-medium text-gray-900">{guest.name}</p>
-                  <p className="text-sm text-gray-500">{guest.document}</p>
+                  {/* 🔥 EMAIL EXIBIDO, DOCUMENTO REMOVIDO */}
+                  {guest.email && (
+                    <p className="text-sm text-gray-500">{guest.email}</p>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -240,8 +228,8 @@ export default function HotelSection({
         </label>
         <textarea
           id="hotel-observations"
-          className="resize-none w-full rounded border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-          placeholder="Ex: quarto com vista, check-in tardio, preferência por andar baixo..."
+          className="w-full rounded border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+          placeholder="Ex: quarto com vista, check-in tardio..."
           value={observations}
           onChange={(e) => onObservationsChange(e.target.value)}
           rows={3}

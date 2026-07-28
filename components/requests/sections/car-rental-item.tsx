@@ -3,13 +3,14 @@
 
 import { useState, useEffect } from "react";
 import Input from "@/components/ui/input";
-import { getGuests } from "@/lib/services/guest-service";
+import { getGuests, createGuest } from "@/lib/services/guest-service";
 import type { Guest } from "@/types/guest";
 
 interface CarDriver {
   id: string;
   name: string;
-  document: string;
+  document?: string; // ← Opcional
+  email?: string;    // ← NOVO
 }
 
 interface CarRental {
@@ -35,7 +36,8 @@ export default function CarRentalItem({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [newDriverName, setNewDriverName] = useState("");
-  const [newDriverDocument, setNewDriverDocument] = useState("");
+  const [newDriverEmail, setNewDriverEmail] = useState(""); // ← NOVO
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Carrega hóspedes do Supabase
   useEffect(() => {
@@ -62,10 +64,11 @@ export default function CarRentalItem({
 
   // Adiciona condutor existente (do autocomplete)
   const addExistingDriver = (guest: Guest) => {
-    const newDriver = {
+    const newDriver: CarDriver = {
       id: guest.id,
       name: guest.full_name,
       document: guest.document,
+      email: guest.email,
     };
     onUpdate({
       ...rental,
@@ -75,30 +78,47 @@ export default function CarRentalItem({
   };
 
   // Adiciona condutor manualmente
-  const addNewDriver = () => {
-    if (!newDriverName.trim() || !newDriverDocument.trim()) {
-      alert("Preencha nome e documento do condutor");
+  const addNewDriver = async () => {
+    if (!newDriverName.trim()) {
+      alert("Preencha o nome do condutor");
       return;
     }
 
-    const exists = rental.drivers.some((d) => d.document === newDriverDocument.trim());
-    if (exists) {
-      alert("Já existe um condutor com este documento nesta locação");
-      return;
+    setIsSubmitting(true);
+
+    try {
+      // 🔥 CRIA O HÓSPEDE NO BANCO (SEM DOCUMENTO)
+      const createdGuest = await createGuest({
+        full_name: newDriverName.trim(),
+        document: undefined, // ← SEM DOCUMENTO
+        email: newDriverEmail.trim() || undefined,
+      });
+
+      const newDriver: CarDriver = {
+        id: createdGuest.id,
+        name: createdGuest.full_name,
+        document: createdGuest.document,
+        email: createdGuest.email,
+      };
+
+      onUpdate({
+        ...rental,
+        drivers: [...rental.drivers, newDriver],
+      });
+
+      // 🔥 RECARREGA A LISTA DE HÓSPEDES PARA ATUALIZAR O AUTOCOMPLETE
+      const updatedGuests = await getGuests();
+      setAvailableGuests(updatedGuests);
+
+      setNewDriverName("");
+      setNewDriverEmail("");
+      alert(`✅ Condutor "${createdGuest.full_name}" cadastrado com sucesso!`);
+    } catch (error) {
+      console.error("Erro ao criar condutor:", error);
+      alert(error instanceof Error ? error.message : "Falha ao criar condutor");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const newDriver = {
-      id: `temp-${Date.now()}`,
-      name: newDriverName.trim(),
-      document: newDriverDocument.trim(),
-    };
-
-    onUpdate({
-      ...rental,
-      drivers: [...rental.drivers, newDriver],
-    });
-    setNewDriverName("");
-    setNewDriverDocument("");
   };
 
   const removeDriver = (id: string) => {
@@ -153,24 +173,32 @@ export default function CarRentalItem({
         {/* Adicionar condutor manualmente */}
         <div className="grid grid-cols-2 gap-2 mb-2">
           <Input
-            placeholder="Nome do condutor"
+            placeholder="Nome do condutor *"
             value={newDriverName}
             onChange={(e) => setNewDriverName(e.target.value)}
+            disabled={isSubmitting}
             className="bg-white text-gray-900"
           />
           <Input
-            placeholder="Documento"
-            value={newDriverDocument}
-            onChange={(e) => setNewDriverDocument(e.target.value)}
+            placeholder="E-mail (opcional)"
+            type="email"
+            value={newDriverEmail}
+            onChange={(e) => setNewDriverEmail(e.target.value)}
+            disabled={isSubmitting}
             className="bg-white text-gray-900"
           />
         </div>
         <button
           type="button"
           onClick={addNewDriver}
-          className="w-full bg-green-600 text-white py-1 rounded-md hover:bg-green-700 transition-colors text-sm font-medium mb-2"
+          disabled={isSubmitting}
+          className={`w-full py-1 rounded-md transition-colors text-sm font-medium mb-2 ${
+            isSubmitting
+              ? "bg-gray-400 text-white cursor-not-allowed"
+              : "bg-green-600 text-white hover:bg-green-700"
+          }`}
         >
-          + Adicionar condutor manualmente
+          {isSubmitting ? "Cadastrando..." : "+ Adicionar condutor manualmente"}
         </button>
 
         {/* Autocomplete */}
@@ -194,7 +222,10 @@ export default function CarRentalItem({
                   className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors text-sm"
                 >
                   <div className="font-medium text-gray-900">{guest.full_name}</div>
-                  <div className="text-gray-500">{guest.document}</div>
+                  {guest.email && (
+                    <div className="text-gray-500 text-xs">{guest.email}</div>
+                  )}
+                  {/* 🔥 DOCUMENTO REMOVIDO */}
                 </button>
               ))}
             </div>
@@ -211,7 +242,10 @@ export default function CarRentalItem({
               >
                 <div>
                   <span className="font-medium text-gray-900">{driver.name}</span>
-                  <span className="text-gray-500 ml-2">{driver.document}</span>
+                  {driver.email && (
+                    <span className="text-gray-500 ml-2">{driver.email}</span>
+                  )}
+                  {/* 🔥 DOCUMENTO REMOVIDO */}
                 </div>
                 <button
                   type="button"

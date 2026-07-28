@@ -30,25 +30,33 @@ export async function getGuests(): Promise<Guest[]> {
   return cachedGuests;
 }
 
-// ➕ CRIAR
-export async function createGuest(name: string, document: string): Promise<Guest> {
+// Criar Hóspede
+export async function createGuest(data: {
+  full_name: string;
+  document?: string;
+  email?: string;
+}): Promise<Guest> {
   const supabase = createClient();
   
-  const { data: existing } = await supabase
-    .from("guests")
-    .select("id")
-    .eq("document", document)
-    .maybeSingle();
+  // 🔥 Só verifica duplicata se documento foi fornecido
+  if (data.document) {
+    const { data: existing } = await supabase
+      .from("guests")
+      .select("id")
+      .eq("document", data.document)
+      .maybeSingle();
 
-  if (existing) {
-    throw new Error("Já existe um hóspede com este documento");
+    if (existing) {
+      throw new Error("Já existe um hóspede com este documento");
+    }
   }
 
-  const { data, error } = await supabase
+  const { data: guest, error } = await supabase
     .from("guests")
     .insert({
-      full_name: name.trim(),
-      document: document.trim(),
+      full_name: data.full_name.trim(),
+      document: data.document?.trim() || null,
+      email: data.email?.trim() || null,
     })
     .select()
     .single();
@@ -59,30 +67,37 @@ export async function createGuest(name: string, document: string): Promise<Guest
   }
 
   clearGuestCache();
-  return data;
+  return guest;
 }
 
 // ✏️ ATUALIZAR
-export async function updateGuest(id: string, name: string, document: string): Promise<Guest> {
+export async function updateGuest(id: string, data: {
+  full_name: string;
+  document?: string;
+  email?: string;
+}): Promise<Guest> {
   const supabase = createClient();
 
-  // Verifica se o documento já existe em outro registro
-  const { data: existing } = await supabase
-    .from("guests")
-    .select("id")
-    .eq("document", document)
-    .neq("id", id)
-    .maybeSingle();
+  // 🔥 Só verifica duplicata se documento foi fornecido e não é vazio
+  if (data.document) {
+    const { data: existing } = await supabase
+      .from("guests")
+      .select("id")
+      .eq("document", data.document)
+      .neq("id", id)
+      .maybeSingle();
 
-  if (existing) {
-    throw new Error("Já existe um hóspede com este documento");
+    if (existing) {
+      throw new Error("Já existe um hóspede com este documento");
+    }
   }
 
-  const { data, error } = await supabase
+  const { data: guest, error } = await supabase
     .from("guests")
     .update({
-      full_name: name.trim(),
-      document: document.trim(),
+      full_name: data.full_name.trim(),
+      document: data.document?.trim() || null,
+      email: data.email?.trim() || null,
     })
     .eq("id", id)
     .select()
@@ -94,7 +109,7 @@ export async function updateGuest(id: string, name: string, document: string): P
   }
 
   clearGuestCache();
-  return data;
+  return guest;
 }
 
 // 🗑️ DELETAR

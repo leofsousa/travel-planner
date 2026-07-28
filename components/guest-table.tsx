@@ -1,3 +1,4 @@
+// app/guests/components/guest-table.tsx
 "use client";
 
 import { useState } from "react";
@@ -20,7 +21,8 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
   const filteredGuests = guests.filter(
     (guest) =>
       guest.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      guest.document.includes(searchTerm)
+      guest.document.includes(searchTerm) ||
+      (guest.email && guest.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const sortedGuests = [...filteredGuests].sort((a, b) =>
@@ -62,7 +64,7 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
         <div className="flex-1">
           <input
             type="text"
-            placeholder="Buscar por nome ou documento..."
+            placeholder="Buscar por nome, documento ou e-mail..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded border border-gray-300 px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
@@ -82,6 +84,7 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
             <tr>
               <th className="px-4 py-3 text-gray-700 font-medium">Nome</th>
               <th className="px-4 py-3 text-gray-700 font-medium">Documento</th>
+              <th className="px-4 py-3 text-gray-700 font-medium">E-mail</th> {/* ← NOVO */}
               <th className="px-4 py-3 text-gray-700 font-medium">Criado em</th>
               <th className="px-4 py-3 text-gray-700 font-medium text-right">Ações</th>
             </tr>
@@ -89,7 +92,7 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
           <tbody>
             {sortedGuests.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                   {searchTerm ? "Nenhum hóspede encontrado" : "Nenhum hóspede cadastrado"}
                 </td>
               </tr>
@@ -100,6 +103,7 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
                   <td className="px-4 py-3">
                     <DocumentDisplay document={guest.document} />
                   </td>
+                  <td className="px-4 py-3 text-gray-600">{guest.email || "-"}</td> {/* ← NOVO */}
                   <td className="px-4 py-3 text-gray-500 text-sm">
                     {new Date(guest.created_at).toLocaleDateString("pt-BR")}
                   </td>

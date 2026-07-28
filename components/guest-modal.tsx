@@ -15,36 +15,49 @@ interface GuestModalProps {
 export default function GuestModal({ guest, onClose, onSave }: GuestModalProps) {
   const [name, setName] = useState("");
   const [document, setDocument] = useState("");
+  const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (guest) {
       setName(guest.full_name);
-      setDocument(guest.document);
+      setDocument(guest.document || "");
+      setEmail(guest.email || "");
     } else {
       setName("");
       setDocument("");
+      setEmail("");
     }
   }, [guest]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !document.trim()) {
-      alert("Preencha todos os campos");
+    // 🔥 Nome continua obrigatório
+    if (!name.trim()) {
+      alert("O nome é obrigatório");
       return;
     }
+
+    // 🔥 Documento agora é opcional
+    const documentValue = document.trim() || undefined;
 
     setIsSubmitting(true);
 
     try {
       let savedGuest: Guest;
       if (guest) {
-        // Edição
-        savedGuest = await updateGuest(guest.id, name.trim(), document.trim());
+        savedGuest = await updateGuest(guest.id, {
+          full_name: name.trim(),
+          document: documentValue,
+          email: email.trim() || undefined,
+        });
       } else {
-        // Criação
-        savedGuest = await createGuest(name.trim(), document.trim());
+        savedGuest = await createGuest({
+          full_name: name.trim(),
+          document: documentValue,
+          email: email.trim() || undefined,
+        });
       }
       onSave(savedGuest);
     } catch (error) {
@@ -54,7 +67,6 @@ export default function GuestModal({ guest, onClose, onSave }: GuestModalProps) 
     }
   };
 
-  // Fecha modal ao clicar fora
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -73,7 +85,7 @@ export default function GuestModal({ guest, onClose, onSave }: GuestModalProps) 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Nome completo"
+            label="Nome completo *"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Digite o nome completo"
@@ -85,7 +97,17 @@ export default function GuestModal({ guest, onClose, onSave }: GuestModalProps) 
             label="Documento (CPF/CNPJ)"
             value={document}
             onChange={(e) => setDocument(e.target.value)}
-            placeholder="Digite o documento"
+            placeholder="Digite o documento (opcional)"
+            disabled={isSubmitting}
+            className="text-gray-900"
+          />
+
+          <Input
+            label="E-mail"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Digite o e-mail do hóspede"
             disabled={isSubmitting}
             className="text-gray-900"
           />

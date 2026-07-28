@@ -4,17 +4,20 @@
 import { useState } from "react";
 
 interface DocumentDisplayProps {
-  document: string;
+  document?: string; // ← Agora é opcional
   label?: string;
 }
 
 export default function DocumentDisplay({ document, label = "Documento" }: DocumentDisplayProps) {
   const [copied, setCopied] = useState(false);
 
+  // 🔥 Se não houver documento, exibe "Não informado"
+  if (!document) {
+    return <span className="text-sm text-gray-400">Não informado</span>;
+  }
+
   const maskDocument = (doc: string) => {
-    if (!doc) return "---";
     if (doc.length <= 4) return doc;
-    
     const first = doc.charAt(0);
     const last = doc.charAt(doc.length - 1);
     const middle = "*".repeat(doc.length - 2);
