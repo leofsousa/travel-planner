@@ -90,22 +90,51 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     loadData();
   }, [params.id]);
 
-  const handleHotelDataChange = useCallback((data) => {
+  const handleHotelDataChange = useCallback((data: {
+    hotelName: string;
+    checkIn: string;
+    checkOut: string;
+    rooms: any[];
+    nights: number;
+    totalCost: number;
+  }) => {
     setHotelSharedData((prev) => {
       if (
         prev.hotelName === data.hotelName &&
         prev.checkIn === data.checkIn &&
         prev.checkOut === data.checkOut &&
+        JSON.stringify(prev.rooms) === JSON.stringify(data.rooms) &&
         prev.nights === data.nights &&
-        prev.totalCost === data.totalCost &&
-        prev.rooms === data.rooms
+        prev.totalCost === data.totalCost
       ) {
         return prev;
       }
-  
-      return data;
+      return {
+        hotelName: data.hotelName,
+        checkIn: data.checkIn,
+        checkOut: data.checkOut,
+        rooms: data.rooms,
+        nights: data.nights,
+        totalCost: data.totalCost,
+      };
     });
   }, []);
+
+  const hotelData = request.request_hotels?.[0];
+  const flightData = request.request_flights?.[0];
+  const carData = request.request_cars?.[0];
+  
+  const hasHotel = hotelData?.enabled === true;
+  const hasFlight = flightData?.enabled === true;
+  const hasCar = carData?.enabled === true;
+  
+  const availableGuests =
+    hotelData?.hotel_guests?.map((hg: any) => ({
+      id: hg.guests.id,
+      name: hg.guests.full_name,
+      document: hg.guests.document,
+    })) ?? [];
+    
 
   if (loading) {
     return (
@@ -119,20 +148,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     notFound();
   }
 
-  const hotelData = request.request_hotels?.[0];
-const flightData = request.request_flights?.[0];
-const carData = request.request_cars?.[0];
-
-const hasHotel = hotelData?.enabled === true;
-const hasFlight = flightData?.enabled === true;
-const hasCar = carData?.enabled === true;
-
-const availableGuests =
-  hotelData?.hotel_guests?.map((hg: any) => ({
-    id: hg.guests.id,
-    name: hg.guests.full_name,
-    document: hg.guests.document,
-  })) ?? [];
   
   return (
     <div className="min-h-screen bg-gray-100 p-4">
