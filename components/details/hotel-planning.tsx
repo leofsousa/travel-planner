@@ -1,6 +1,7 @@
 // components/details/hotel-planning.tsx
 "use client";
 
+import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import RoomCard from "./room-card";
 import RoomModal from "./room-modal";
@@ -12,7 +13,7 @@ interface Guest {
   id: string;
   name: string;
   document: string;
-  email?: string; 
+  email?: string;
 }
 
 interface RatePeriod {
@@ -56,6 +57,7 @@ export default function HotelPlanning({
   onDataChange,
 }: HotelPlanningProps) {
   const [hotelName, setHotelName] = useState("");
+  const [hotelAddress, setHotelAddress] = useState("");
   const [checkIn, setCheckIn] = useState(startDate);
   const [checkOut, setCheckOut] = useState(endDate);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -65,6 +67,29 @@ export default function HotelPlanning({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHotel, setSelectedHotel] = useState<any>(null);
   const [guestEmails, setGuestEmails] = useState<string[]>([]);
+
+  const fetchHotelAddress = useCallback(async (name: string) => {
+    if (!name) return;
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("hotels")
+        .select("address")
+        .ilike("name", name)
+        .maybeSingle();
+      if (data?.address) {
+        setHotelAddress(data.address);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar endereço do hotel:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (hotelName) {
+      fetchHotelAddress(hotelName);
+    }
+  }, [hotelName, fetchHotelAddress]);
 
   const extractGuestEmails = useCallback((rooms: Room[]) => {
     const emails: string[] = [];
@@ -433,13 +458,14 @@ export default function HotelPlanning({
             eventName,
             location,
             hotelName: hotelName || "Hotel não informado",
+            hotelAddress: hotelAddress || "Endereço não informado", // ← NOVO
             checkIn,
             checkOut,
             rooms,
             nights,
             totalCost: calculateTotal(),
           }}
-          guestEmails={guestEmails} // ← 🔥 PASSE A PROP AQUI
+          guestEmails={guestEmails}
         />
       )}
     </div>

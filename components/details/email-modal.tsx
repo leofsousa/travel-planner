@@ -11,6 +11,7 @@ interface EmailModalProps {
     eventName: string;
     location: string;
     hotelName: string;
+    hotelAddress?: string;
     checkIn: string;
     checkOut: string;
     rooms: any[];
@@ -27,53 +28,6 @@ export default function EmailModal({
   guestEmails = [],
 }: EmailModalProps) {
   const [activeTab, setActiveTab] = useState<"financeiro" | "colaborador">("financeiro");
-  const [isSending, setIsSending] = useState(false);
-  const [sendStatus, setSendStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-
-  // 🔥 FUNÇÃO PARA ENVIAR EMAIL
-  const handleSendEmail = async () => {
-    const emailInput = document.getElementById("email-responsavel") as HTMLInputElement;
-    const previewEl = document.getElementById("preview-email");
-
-    const emails = emailInput?.value || "";
-    const emailList = emails.split(",").map((e) => e.trim()).filter((e) => e);
-
-    if (emailList.length === 0) {
-      setSendStatus({ type: "error", message: "Adicione pelo menos um destinatário" });
-      return;
-    }
-
-    if (!previewEl) {
-      setSendStatus({ type: "error", message: "Erro ao gerar o email" });
-      return;
-    }
-
-    setIsSending(true);
-    setSendStatus(null);
-
-    try {
-      const subject = `Reserva de Hotel - ${data.eventName}`;
-      const html = previewEl.textContent?.replace(/\n/g, "<br>") || "";
-
-      await sendEmail({
-        to: emailList,
-        subject,
-        html,
-      });
-
-      setSendStatus({
-        type: "success",
-        message: `✅ Email enviado com sucesso para ${emailList.length} destinatário(s)!`,
-      });
-    } catch (error) {
-      setSendStatus({
-        type: "error",
-        message: error instanceof Error ? error.message : "Erro ao enviar email",
-      });
-    } finally {
-      setIsSending(false);
-    }
-  };
 
   // 🔥 FUNÇÃO PARA ATUALIZAR O PREVIEW EM TEMPO REAL
   const updatePreview = () => {
@@ -130,6 +84,7 @@ Restam R$ ${valorRestante.toFixed(2)} a serem pagos no check-in.`;
 Segue as informações da reserva de hotel para o evento "${data.eventName}":
 
 Hotel: ${data.hotelName}
+Endereço: ${data.hotelAddress || "Endereço não informado"}
 Check-in: ${new Date(data.checkIn).toLocaleDateString("pt-BR")}
 Check-out: ${new Date(data.checkOut).toLocaleDateString("pt-BR")}
 Total de diárias: ${data.nights}
@@ -309,6 +264,7 @@ Atenciosamente,`;
 Segue as informações da reserva de hotel para o evento "${data.eventName}":
 
 Hotel: ${data.hotelName}
+Endereço: ${data.hotelAddress || "Endereço não informado"}
 Check-in: ${new Date(data.checkIn).toLocaleDateString("pt-BR")}
 Check-out: ${new Date(data.checkOut).toLocaleDateString("pt-BR")}
 Total de diárias: ${data.nights}
@@ -327,39 +283,17 @@ Atenciosamente,`}
                 </pre>
               </div>
 
-              {/* Status do envio */}
-              {sendStatus && (
-                <div
-                  className={`p-3 rounded-lg text-sm ${
-                    sendStatus.type === "success"
-                      ? "bg-green-50 border border-green-200 text-green-700"
-                      : "bg-red-50 border border-red-200 text-red-700"
-                  }`}
-                >
-                  {sendStatus.message}
-                </div>
-              )}
-
-              {/* Botões */}
+              {/* 🔥 BOTÕES - APENAS COPIAR E ABRIR NO EMAIL */}
               <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={handleSendEmail}
-                  disabled={isSending}
-                  className={`bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center gap-2 ${
-                    isSending ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
-                  }`}
-                >
-                  {isSending ? "⏳ Enviando..." : "📤 Enviar Email"}
-                </button>
                 <button
                   onClick={() => {
                     const previewEl = document.getElementById("preview-email");
                     if (previewEl) {
                       navigator.clipboard.writeText(previewEl.textContent || "");
-                      alert("Email copiado!");
+                      alert("📋 Email copiado para a área de transferência!");
                     }
                   }}
-                  className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm flex items-center gap-2"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
                 >
                   📋 Copiar Email
                 </button>

@@ -16,8 +16,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, signOut } = useAuth();
 
   const menuItems = [
-    { href: "/", label: "Dashboard", icon: "📊" },
-    { href: "/control-panel", label: "Painel de Controle", icon: "📈" },
+    { href: "/", label: "Painel de Controle", icon: "📊" },
+    { href: "/control-panel", label: "Dashboard", icon: "📈" },
     { href: "/requests/new", label: "Nova Solicitação", icon: "➕" },
     { href: "/guests", label: "Hóspedes", icon: "👥" },
     { href: "/hotels", label: "Hotéis", icon: "🏨" },
