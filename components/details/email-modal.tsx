@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import EmailGenerator from "./email-generator";
-import { sendEmail } from "@/lib/services/email-service";
 
 interface EmailModalProps {
   isOpen: boolean;
@@ -140,8 +139,8 @@ ${roomsSection}
 
 Valor total da reserva: R$ ${data.totalCost.toFixed(2)}
 ${pagamentoTexto}
-Atenciosamente,
-[seu nome]`;
+
+Atenciosamente,`;
   };
 
   if (!isOpen) return null;
@@ -324,8 +323,7 @@ ${data.rooms
 
 Valor total da reserva: R$ ${data.totalCost.toFixed(2)}
 
-Atenciosamente,
-Equipe de Planejamento`}
+Atenciosamente,`}
                 </pre>
               </div>
 

@@ -783,12 +783,6 @@ export async function searchHotels(query: string, city?: string) {
     .order("name", { ascending: true })
     .limit(10);
 
-  if (city) {
-    // Extrai apenas a cidade (remove o que vem depois do "-")
-    const cityOnly = city.split("-")[0].trim();
-    supabaseQuery = supabaseQuery.ilike("city", `%${cityOnly}%`);
-  }
-
   const { data, error } = await supabaseQuery;
 
   if (error) {
