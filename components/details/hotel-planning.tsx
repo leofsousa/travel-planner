@@ -1,13 +1,12 @@
 // components/details/hotel-planning.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import RoomCard from "./room-card";
 import RoomModal from "./room-modal";
-import EmailGenerator from "./email-generator";
+import EmailModal from "./email-modal"; // ← NOVO
 import { saveHotelPlanning, getHotelPlanning } from "@/lib/services/request-service";
 import HotelAutocomplete from "./hotel-autocomplete";
-import { useCallback } from "react";
 
 interface Guest {
   id: string;
@@ -60,6 +59,7 @@ export default function HotelPlanning({
   const [checkOut, setCheckOut] = useState(endDate);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false); // ← NOVO
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHotel, setSelectedHotel] = useState<any>(null);
@@ -73,7 +73,6 @@ export default function HotelPlanning({
 
   const handleHotelSelected = (hotel: any) => {
     setSelectedHotel(hotel);
-    // Opcional: preencher outros campos (endereço, telefone, etc.)
   };
 
   const calculateNights = useCallback(() => {
@@ -90,7 +89,6 @@ export default function HotelPlanning({
     return rooms.reduce((sum, room) => sum + room.total, 0);
   }, [rooms]);
 
-  // 🔥 NOTIFICAR O PAI SEMPRE QUE OS DADOS MUDAREM
   const handleDataChange = useCallback(() => {
     if (onDataChange && !isLoading) {
       onDataChange({
@@ -171,7 +169,6 @@ export default function HotelPlanning({
     loadPlanning();
   }, [requestId, startDate, endDate]);
 
-  // Salvar automaticamente quando houver mudanças
   useEffect(() => {
     if (isLoading || !initialDataRef.current) return;
 
@@ -297,7 +294,7 @@ export default function HotelPlanning({
             value={hotelName}
             onChange={setHotelName}
             onHotelSelected={handleHotelSelected}
-            city={location} // ← Usa a cidade da solicitação
+            city={location}
             placeholder="Digite o nome do hotel..."
           />
         </div>
@@ -378,20 +375,50 @@ export default function HotelPlanning({
         )}
       </div>
 
+      {/* 🔥 BOTÃO PARA ABRIR O MODAL DE EMAIL - SEMPRE VISÍVEL QUANDO HOUVER QUARTOS */}
+      {rooms.length > 0 && (
+        <div className="border-t border-gray-200 pt-4">
+          <button
+            onClick={() => setIsEmailModalOpen(true)}
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
+            📧 Gerar Email da Reserva
+          </button>
+        </div>
+      )}
+
       {isModalOpen && (
         <RoomModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        onSave={handleModalSave}
-        availableGuests={availableGuests}
-        editingRoom={editingRoom}
-        nights={nights}
-        roomTypes={roomTypes}
-        startDate={checkIn}   
-        endDate={checkOut}
-        requestStartDate={startDate}  // ← NOVO
-        requestEndDate={endDate}      // ← NOVO
-      />
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          onSave={handleModalSave}
+          availableGuests={availableGuests}
+          editingRoom={editingRoom}
+          nights={nights}
+          roomTypes={roomTypes}
+          startDate={checkIn}   
+          endDate={checkOut}
+          requestStartDate={startDate}
+          requestEndDate={endDate}
+        />
+      )}
+
+      {/* 🔥 MODAL DE EMAIL */}
+      {isEmailModalOpen && (
+        <EmailModal
+          isOpen={isEmailModalOpen}
+          onClose={() => setIsEmailModalOpen(false)}
+          data={{
+            eventName,
+            location,
+            hotelName: hotelName || "Hotel não informado",
+            checkIn,
+            checkOut,
+            rooms,
+            nights,
+            totalCost: calculateTotal(),
+          }}
+        />
       )}
     </div>
   );
