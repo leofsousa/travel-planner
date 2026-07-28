@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import EmailGenerator from "./email-generator";
+import { sendEmail } from "@/lib/services/email-service";
 
 interface EmailModalProps {
   isOpen: boolean;
@@ -24,9 +25,56 @@ export default function EmailModal({
   isOpen,
   onClose,
   data,
-  guestEmails = [] // ← 🔥 CORRIGIDO
+  guestEmails = [],
 }: EmailModalProps) {
   const [activeTab, setActiveTab] = useState<"financeiro" | "colaborador">("financeiro");
+  const [isSending, setIsSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // 🔥 FUNÇÃO PARA ENVIAR EMAIL
+  const handleSendEmail = async () => {
+    const emailInput = document.getElementById("email-responsavel") as HTMLInputElement;
+    const previewEl = document.getElementById("preview-email");
+
+    const emails = emailInput?.value || "";
+    const emailList = emails.split(",").map((e) => e.trim()).filter((e) => e);
+
+    if (emailList.length === 0) {
+      setSendStatus({ type: "error", message: "Adicione pelo menos um destinatário" });
+      return;
+    }
+
+    if (!previewEl) {
+      setSendStatus({ type: "error", message: "Erro ao gerar o email" });
+      return;
+    }
+
+    setIsSending(true);
+    setSendStatus(null);
+
+    try {
+      const subject = `Reserva de Hotel - ${data.eventName}`;
+      const html = previewEl.textContent?.replace(/\n/g, "<br>") || "";
+
+      await sendEmail({
+        to: emailList,
+        subject,
+        html,
+      });
+
+      setSendStatus({
+        type: "success",
+        message: `✅ Email enviado com sucesso para ${emailList.length} destinatário(s)!`,
+      });
+    } catch (error) {
+      setSendStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "Erro ao enviar email",
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   // 🔥 FUNÇÃO PARA ATUALIZAR O PREVIEW EM TEMPO REAL
   const updatePreview = () => {
@@ -98,7 +146,8 @@ Atenciosamente,
 
   if (!isOpen) return null;
 
-  const missingHotelName = !data.hotelName || data.hotelName.trim() === "" || data.hotelName === "Hotel não informado";
+  const missingHotelName =
+    !data.hotelName || data.hotelName.trim() === "" || data.hotelName === "Hotel não informado";
   const missingRooms = !data.rooms || data.rooms.length === 0;
   const hasMissingData = missingHotelName || missingRooms;
 
@@ -108,12 +157,17 @@ Atenciosamente,
         {/* Cabeçalho */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-900">📧 Emails da Reserva</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            ✕
+          </button>
         </div>
 
         {hasMissingData && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">⚠️ Atenção: Algumas informações estão faltando. Você pode editar o email manualmente após copiar.</p>
+            <p className="text-sm text-yellow-800">
+              ⚠️ Atenção: Algumas informações estão faltando. Você pode editar o email
+              manualmente após copiar.
+            </p>
             <ul className="text-xs text-yellow-700 mt-1 list-disc list-inside">
               {missingHotelName && <li>Nome do hotel não informado</li>}
               {missingRooms && <li>Nenhum quarto adicionado</li>}
@@ -125,19 +179,21 @@ Atenciosamente,
         <div className="flex border-b border-gray-200 mb-4">
           <button
             onClick={() => setActiveTab("financeiro")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "financeiro"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "financeiro"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
           >
             💳 Financeiro
           </button>
           <button
             onClick={() => setActiveTab("colaborador")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "colaborador"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "colaborador"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
           >
             👤 Colaborador
           </button>
@@ -149,7 +205,7 @@ Atenciosamente,
 
           {activeTab === "colaborador" && (
             <div className="space-y-4">
-              {/* 📧 E-mail do responsável - COM TODOS OS EMAILS */}
+              {/* 📧 E-mail do responsável */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   📧 E-mail do responsável (ou múltiplos, separados por vírgula)
@@ -165,9 +221,7 @@ Atenciosamente,
                   />
                   <datalist id="emails-list">
                     {guestEmails.length > 0 ? (
-                      guestEmails.map((email) => (
-                        <option key={email} value={email} />
-                      ))
+                      guestEmails.map((email) => <option key={email} value={email} />)
                     ) : (
                       <option value="Nenhum email disponível" />
                     )}
@@ -193,7 +247,9 @@ Atenciosamente,
                     className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     onChange={(e) => {
                       if (e.target.checked) {
-                        const personalizado = document.getElementById("pagamentoPersonalizado") as HTMLInputElement;
+                        const personalizado = document.getElementById(
+                          "pagamentoPersonalizado"
+                        ) as HTMLInputElement;
                         if (personalizado) personalizado.checked = false;
                       }
                       updatePreview();
@@ -211,7 +267,9 @@ Atenciosamente,
                     className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     onChange={(e) => {
                       if (e.target.checked) {
-                        const checkbox50 = document.getElementById("pagamento50") as HTMLInputElement;
+                        const checkbox50 = document.getElementById(
+                          "pagamento50"
+                        ) as HTMLInputElement;
                         if (checkbox50) checkbox50.checked = false;
                       }
                       updatePreview();
@@ -230,15 +288,23 @@ Atenciosamente,
                   />
                 </div>
 
-                <div id="resumo-pagamento" className="mt-2 p-2 bg-blue-50 rounded border border-blue-200 text-sm">
+                <div
+                  id="resumo-pagamento"
+                  className="mt-2 p-2 bg-blue-50 rounded border border-blue-200 text-sm"
+                >
                   <p className="text-gray-600">Nenhum pagamento antecipado selecionado.</p>
                 </div>
               </div>
 
               {/* 🔥 Preview do Email */}
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Preview do Email:</h4>
-                <pre id="preview-email" className="text-sm text-gray-600 whitespace-pre-wrap font-sans">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Preview do Email:
+                </h4>
+                <pre
+                  id="preview-email"
+                  className="text-sm text-gray-600 whitespace-pre-wrap font-sans"
+                >
                   {`Olá,
 
 Segue as informações da reserva de hotel para o evento "${data.eventName}":
@@ -249,10 +315,12 @@ Check-out: ${new Date(data.checkOut).toLocaleDateString("pt-BR")}
 Total de diárias: ${data.nights}
 
 Quartos e Hóspedes:
-${data.rooms.map((room) => {
-                    const guestsList = room.guests.map((g: any) => g.name).join(", ");
-                    return `- ${room.type} - ${guestsList} - R$ ${room.total.toFixed(2)}`;
-                  }).join("\n")}
+${data.rooms
+  .map((room) => {
+    const guestsList = room.guests.map((g: any) => g.name).join(", ");
+    return `- ${room.type} - ${guestsList} - R$ ${room.total.toFixed(2)}`;
+  })
+  .join("\n")}
 
 Valor total da reserva: R$ ${data.totalCost.toFixed(2)}
 
@@ -261,8 +329,30 @@ Equipe de Planejamento`}
                 </pre>
               </div>
 
+              {/* Status do envio */}
+              {sendStatus && (
+                <div
+                  className={`p-3 rounded-lg text-sm ${
+                    sendStatus.type === "success"
+                      ? "bg-green-50 border border-green-200 text-green-700"
+                      : "bg-red-50 border border-red-200 text-red-700"
+                  }`}
+                >
+                  {sendStatus.message}
+                </div>
+              )}
+
               {/* Botões */}
               <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleSendEmail}
+                  disabled={isSending}
+                  className={`bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center gap-2 ${
+                    isSending ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
+                  }`}
+                >
+                  {isSending ? "⏳ Enviando..." : "📤 Enviar Email"}
+                </button>
                 <button
                   onClick={() => {
                     const previewEl = document.getElementById("preview-email");
@@ -271,13 +361,15 @@ Equipe de Planejamento`}
                       alert("Email copiado!");
                     }
                   }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
+                  className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm flex items-center gap-2"
                 >
                   📋 Copiar Email
                 </button>
                 <button
                   onClick={() => {
-                    const emailInput = document.getElementById("email-responsavel") as HTMLInputElement;
+                    const emailInput = document.getElementById(
+                      "email-responsavel"
+                    ) as HTMLInputElement;
                     const emails = emailInput?.value || "";
                     const subject = `Reserva de Hotel - ${data.eventName}`;
                     const previewEl = document.getElementById("preview-email");
