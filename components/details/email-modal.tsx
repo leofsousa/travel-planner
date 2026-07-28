@@ -17,9 +17,15 @@ interface EmailModalProps {
     nights: number;
     totalCost: number;
   };
+  guestEmails?: string[];
 }
 
-export default function EmailModal({ isOpen, onClose, data }: EmailModalProps) {
+export default function EmailModal({
+  isOpen,
+  onClose,
+  data,
+  guestEmails = [] // ← 🔥 CORRIGIDO
+}: EmailModalProps) {
   const [activeTab, setActiveTab] = useState<"financeiro" | "colaborador">("financeiro");
 
   // 🔥 FUNÇÃO PARA ATUALIZAR O PREVIEW EM TEMPO REAL
@@ -54,7 +60,6 @@ Restam R$ ${valorRestante.toFixed(2)} a serem pagos no check-in.`;
       }
     }
 
-    // Atualiza o resumo do pagamento
     if (resumoEl) {
       if (valorAntecipado > 0) {
         resumoEl.innerHTML = `
@@ -66,7 +71,6 @@ Restam R$ ${valorRestante.toFixed(2)} a serem pagos no check-in.`;
       }
     }
 
-    // Atualiza o preview do email
     const roomsSection = data.rooms
       .map((room) => {
         const guestsList = room.guests.map((g: any) => g.name).join(", ");
@@ -94,7 +98,6 @@ Atenciosamente,
 
   if (!isOpen) return null;
 
-  // Verifica se faltam dados
   const missingHotelName = !data.hotelName || data.hotelName.trim() === "" || data.hotelName === "Hotel não informado";
   const missingRooms = !data.rooms || data.rooms.length === 0;
   const hasMissingData = missingHotelName || missingRooms;
@@ -105,20 +108,12 @@ Atenciosamente,
         {/* Cabeçalho */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-900">📧 Emails da Reserva</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
         </div>
 
-        {/* 🔥 AVISO DE DADOS FALTANTES */}
         {hasMissingData && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              ⚠️ Atenção: Algumas informações estão faltando. Você pode editar o email manualmente após copiar.
-            </p>
+            <p className="text-sm text-yellow-800">⚠️ Atenção: Algumas informações estão faltando. Você pode editar o email manualmente após copiar.</p>
             <ul className="text-xs text-yellow-700 mt-1 list-disc list-inside">
               {missingHotelName && <li>Nome do hotel não informado</li>}
               {missingRooms && <li>Nenhum quarto adicionado</li>}
@@ -130,27 +125,19 @@ Atenciosamente,
         <div className="flex border-b border-gray-200 mb-4">
           <button
             onClick={() => setActiveTab("financeiro")}
-            className={`
-              px-4 py-2 text-sm font-medium transition-colors
-              ${
-                activeTab === "financeiro"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }
-            `}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "financeiro"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             💳 Financeiro
           </button>
           <button
             onClick={() => setActiveTab("colaborador")}
-            className={`
-              px-4 py-2 text-sm font-medium transition-colors
-              ${
-                activeTab === "colaborador"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }
-            `}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "colaborador"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             👤 Colaborador
           </button>
@@ -158,22 +145,39 @@ Atenciosamente,
 
         {/* Conteúdo das abas */}
         <div>
-          {activeTab === "financeiro" && (
-            <EmailGenerator {...data} />
-          )}
+          {activeTab === "financeiro" && <EmailGenerator {...data} />}
 
           {activeTab === "colaborador" && (
             <div className="space-y-4">
-              {/* 📧 E-mail do responsável */}
+              {/* 📧 E-mail do responsável - COM TODOS OS EMAILS */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  📧 E-mail do responsável
+                  📧 E-mail do responsável (ou múltiplos, separados por vírgula)
                 </label>
-                <input
-                  type="email"
-                  placeholder="email@empresa.com"
-                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="email-responsavel"
+                    defaultValue={guestEmails.join(", ")}
+                    placeholder="email1@empresa.com, email2@empresa.com"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    onChange={updatePreview}
+                  />
+                  <datalist id="emails-list">
+                    {guestEmails.length > 0 ? (
+                      guestEmails.map((email) => (
+                        <option key={email} value={email} />
+                      ))
+                    ) : (
+                      <option value="Nenhum email disponível" />
+                    )}
+                  </datalist>
+                </div>
+                {guestEmails.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 Emails disponíveis: {guestEmails.join(", ")}
+                  </p>
+                )}
               </div>
 
               {/* ─── Pagamento Antecipado ─── */}
@@ -187,7 +191,13 @@ Atenciosamente,
                     type="checkbox"
                     id="pagamento50"
                     className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    onChange={updatePreview}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        const personalizado = document.getElementById("pagamentoPersonalizado") as HTMLInputElement;
+                        if (personalizado) personalizado.checked = false;
+                      }
+                      updatePreview();
+                    }}
                   />
                   <label htmlFor="pagamento50" className="text-sm text-gray-700">
                     50% do valor total (R$ {(data.totalCost / 2).toFixed(2)})
@@ -199,7 +209,13 @@ Atenciosamente,
                     type="checkbox"
                     id="pagamentoPersonalizado"
                     className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    onChange={updatePreview}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        const checkbox50 = document.getElementById("pagamento50") as HTMLInputElement;
+                        if (checkbox50) checkbox50.checked = false;
+                      }
+                      updatePreview();
+                    }}
                   />
                   <label htmlFor="pagamentoPersonalizado" className="text-sm text-gray-700">
                     Valor personalizado:
@@ -214,7 +230,6 @@ Atenciosamente,
                   />
                 </div>
 
-                {/* Resumo do pagamento */}
                 <div id="resumo-pagamento" className="mt-2 p-2 bg-blue-50 rounded border border-blue-200 text-sm">
                   <p className="text-gray-600">Nenhum pagamento antecipado selecionado.</p>
                 </div>
@@ -235,23 +250,41 @@ Total de diárias: ${data.nights}
 
 Quartos e Hóspedes:
 ${data.rooms.map((room) => {
-  const guestsList = room.guests.map((g: any) => g.name).join(", ");
-  return `- ${room.type} - ${guestsList} - R$ ${room.total.toFixed(2)}`;
-}).join("\n")}
+                    const guestsList = room.guests.map((g: any) => g.name).join(", ");
+                    return `- ${room.type} - ${guestsList} - R$ ${room.total.toFixed(2)}`;
+                  }).join("\n")}
 
 Valor total da reserva: R$ ${data.totalCost.toFixed(2)}
 
-Atenciosamente,
-[seu nome]`}
+Atenciosamente,`}
                 </pre>
               </div>
 
               {/* Botões */}
               <div className="flex flex-wrap gap-3">
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const previewEl = document.getElementById("preview-email");
+                    if (previewEl) {
+                      navigator.clipboard.writeText(previewEl.textContent || "");
+                      alert("Email copiado!");
+                    }
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
+                >
                   📋 Copiar Email
                 </button>
-                <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const emailInput = document.getElementById("email-responsavel") as HTMLInputElement;
+                    const emails = emailInput?.value || "";
+                    const subject = `Reserva de Hotel - ${data.eventName}`;
+                    const previewEl = document.getElementById("preview-email");
+                    const body = encodeURIComponent(previewEl?.textContent || "");
+                    window.location.href = `mailto:${emails}?subject=${subject}&body=${body}`;
+                  }}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2"
+                >
                   📧 Abrir no Email
                 </button>
               </div>

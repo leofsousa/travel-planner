@@ -12,6 +12,7 @@ interface Guest {
   id: string;
   name: string;
   document: string;
+  email?: string; 
 }
 
 interface RatePeriod {
@@ -63,7 +64,26 @@ export default function HotelPlanning({
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHotel, setSelectedHotel] = useState<any>(null);
-  
+  const [guestEmails, setGuestEmails] = useState<string[]>([]);
+
+  const extractGuestEmails = useCallback((rooms: Room[]) => {
+    const emails: string[] = [];
+    rooms.forEach((room) => {
+      room.guests.forEach((guest) => {
+        if (guest.email && !emails.includes(guest.email)) {
+          emails.push(guest.email);
+        }
+      });
+    });
+    console.log("📧 Emails extraídos:", emails); // ← LOG
+    return emails;
+  }, []);
+
+  useEffect(() => {
+    const emails = extractGuestEmails(rooms);
+    setGuestEmails(emails);
+  }, [rooms]);
+
   const initialDataRef = useRef<{
     hotelName: string;
     checkIn: string;
@@ -134,6 +154,7 @@ export default function HotelPlanning({
                   id: rg.guests.id,
                   name: rg.guests.full_name,
                   document: rg.guests.document,
+                  email: rg.guests.email,
                 })) || [],
                 periods: periods,
                 total: total,
@@ -396,7 +417,7 @@ export default function HotelPlanning({
           editingRoom={editingRoom}
           nights={nights}
           roomTypes={roomTypes}
-          startDate={checkIn}   
+          startDate={checkIn}
           endDate={checkOut}
           requestStartDate={startDate}
           requestEndDate={endDate}
@@ -418,6 +439,7 @@ export default function HotelPlanning({
             nights,
             totalCost: calculateTotal(),
           }}
+          guestEmails={guestEmails} // ← 🔥 PASSE A PROP AQUI
         />
       )}
     </div>

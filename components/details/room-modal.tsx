@@ -1,3 +1,4 @@
+// components/details/room-modal.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,6 +7,7 @@ interface Guest {
   id: string;
   name: string;
   document: string;
+  email?: string; // ← ADICIONADO
 }
 
 interface RatePeriod {
@@ -73,12 +75,10 @@ export default function RoomModal({
     setValidationErrors([]);
   }, [editingRoom, isOpen, startDate, endDate, requestStartDate, requestEndDate]);
 
-  // 🔥 VALIDAÇÃO DOS PERÍODOS
   const validatePeriods = () => {
     const errors: string[] = [];
 
     periods.forEach((period, index) => {
-      // Período dentro da viagem
       if (period.startDate < requestStartDate) {
         errors.push(`Período ${index + 1} começa antes da viagem.`);
       }
@@ -90,7 +90,6 @@ export default function RoomModal({
       }
     });
 
-    // Sobreposição de períodos
     for (let i = 0; i < periods.length; i++) {
       for (let j = i + 1; j < periods.length; j++) {
         const p1 = periods[i];
@@ -142,7 +141,6 @@ export default function RoomModal({
   );
 
   const addGuest = (guest: Guest) => {
-    // 🔥 VALIDAÇÃO: Quarto individual só pode ter 1 hóspede
     if (type === "individual" && selectedGuests.length >= 1) {
       setError("Quartos individuais só podem ter 1 hóspede.");
       return;
@@ -157,19 +155,16 @@ export default function RoomModal({
   };
 
   const handleSubmit = () => {
-    // 🔥 VALIDAÇÃO DE HÓSPEDES
     if (selectedGuests.length === 0) {
       setError("Adicione pelo menos um hóspede ao quarto");
       return;
     }
 
-    // 🔥 VALIDAÇÃO DE QUARTO INDIVIDUAL
     if (type === "individual" && selectedGuests.length > 1) {
       setError("Quartos individuais só podem ter 1 hóspede.");
       return;
     }
 
-    // 🔥 VALIDAÇÃO DE PERÍODOS
     if (!validatePeriods()) {
       setError(validationErrors.join(" "));
       return;
@@ -200,7 +195,6 @@ export default function RoomModal({
         </h2>
 
         <div className="space-y-4">
-          {/* Tipo de Quarto */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tipo de Quarto
@@ -223,7 +217,6 @@ export default function RoomModal({
             )}
           </div>
 
-          {/* Períodos */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-medium text-gray-700">
@@ -312,7 +305,6 @@ export default function RoomModal({
             )}
           </div>
 
-          {/* Hóspedes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Hóspedes ({selectedGuests.length})
@@ -337,6 +329,9 @@ export default function RoomModal({
                     >
                       <div className="font-medium text-gray-900">{guest.name}</div>
                       <div className="text-gray-500 text-xs">{guest.document}</div>
+                      {guest.email && (
+                        <div className="text-gray-400 text-xs">{guest.email}</div>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -350,6 +345,9 @@ export default function RoomModal({
                       className="flex items-center justify-between bg-gray-50 rounded p-2 text-sm"
                     >
                       <span className="text-gray-900">{guest.name}</span>
+                      {guest.email && (
+                        <span className="text-gray-500 text-xs">{guest.email}</span>
+                      )}
                       <button
                         type="button"
                         onClick={() => removeGuest(guest.id)}
@@ -364,7 +362,6 @@ export default function RoomModal({
             </div>
           </div>
 
-          {/* Total do Quarto */}
           {total > 0 && selectedGuests.length > 0 && (
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
               <p className="text-sm text-gray-700">
