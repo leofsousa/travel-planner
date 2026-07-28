@@ -256,7 +256,8 @@ ${data.rooms.map((room) => {
 
 Valor total da reserva: R$ ${data.totalCost.toFixed(2)}
 
-Atenciosamente,`}
+Atenciosamente,
+Equipe de Planejamento`}
                 </pre>
               </div>
 
