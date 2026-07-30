@@ -29,9 +29,9 @@ export default function EmailModal({
 }: EmailModalProps) {
   const [activeTab, setActiveTab] = useState<"financeiro" | "colaborador">("financeiro");
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     const [year, month, day] = dateString.split("-");
-    return new Date(year, month - 1, day).toLocaleDateString("pt-BR");
+    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString("pt-BR");
   };
   // 🔥 FUNÇÃO PARA ATUALIZAR O PREVIEW EM TEMPO REAL
   const updatePreview = () => {
