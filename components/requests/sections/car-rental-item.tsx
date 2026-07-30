@@ -9,8 +9,8 @@ import type { Guest } from "@/types/guest";
 interface CarDriver {
   id: string;
   name: string;
-  document?: string; // ← Opcional
-  email?: string;    // ← NOVO
+  document?: string;
+  email?: string;
 }
 
 interface CarRental {
@@ -18,6 +18,7 @@ interface CarRental {
   startDate: string;
   endDate: string;
   drivers: CarDriver[];
+  totalAmount?: number; // ← NOVO: valor total da locação
   observations: string;
 }
 
@@ -36,7 +37,7 @@ export default function CarRentalItem({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [newDriverName, setNewDriverName] = useState("");
-  const [newDriverEmail, setNewDriverEmail] = useState(""); // ← NOVO
+  const [newDriverEmail, setNewDriverEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Carrega hóspedes do Supabase
@@ -55,14 +56,35 @@ export default function CarRentalItem({
     loadGuests();
   }, []);
 
-  // Filtra condutores disponíveis (que não estão na lista)
+  // 🔥 CALCULA O NÚMERO DE DIÁRIAS
+  const calculateNights = () => {
+    if (!rental.startDate || !rental.endDate) return 0;
+    const start = new Date(rental.startDate);
+    const end = new Date(rental.endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const nights = calculateNights();
+
+  // 🔥 CALCULA O VALOR POR DIA
+  const dailyRate = rental.totalAmount && nights > 0 ? rental.totalAmount / nights : 0;
+
+  // 🔥 ATUALIZA O TOTAL
+  const handleTotalAmountChange = (value: string) => {
+    const total = parseFloat(value) || 0;
+    onUpdate({
+      ...rental,
+      totalAmount: total,
+    });
+  };
+
   const filteredGuests = availableGuests
     .filter((guest) => !rental.drivers.some((d) => d.id === guest.id))
     .filter((guest) =>
       guest.full_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  // Adiciona condutor existente (do autocomplete)
   const addExistingDriver = (guest: Guest) => {
     const newDriver: CarDriver = {
       id: guest.id,
@@ -77,7 +99,6 @@ export default function CarRentalItem({
     setSearchTerm("");
   };
 
-  // Adiciona condutor manualmente
   const addNewDriver = async () => {
     if (!newDriverName.trim()) {
       alert("Preencha o nome do condutor");
@@ -87,10 +108,9 @@ export default function CarRentalItem({
     setIsSubmitting(true);
 
     try {
-      // 🔥 CRIA O HÓSPEDE NO BANCO (SEM DOCUMENTO)
       const createdGuest = await createGuest({
         full_name: newDriverName.trim(),
-        document: undefined, // ← SEM DOCUMENTO
+        document: undefined,
         email: newDriverEmail.trim() || undefined,
       });
 
@@ -106,7 +126,6 @@ export default function CarRentalItem({
         drivers: [...rental.drivers, newDriver],
       });
 
-      // 🔥 RECARREGA A LISTA DE HÓSPEDES PARA ATUALIZAR O AUTOCOMPLETE
       const updatedGuests = await getGuests();
       setAvailableGuests(updatedGuests);
 
@@ -133,6 +152,13 @@ export default function CarRentalItem({
       ...rental,
       [field]: value,
     });
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
   };
 
   return (
@@ -164,13 +190,49 @@ export default function CarRentalItem({
         />
       </div>
 
+      {/* 🔥 VALOR TOTAL E DIÁRIA */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Valor total da locação (R$)
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={rental.totalAmount || ""}
+            onChange={(e) => handleTotalAmountChange(e.target.value)}
+            placeholder="Ex: 1500.00"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Valor por diária
+          </label>
+          <div className="w-full rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+            {nights > 0 && rental.totalAmount ? (
+              <>
+                {formatCurrency(dailyRate)} / dia
+                <span className="text-xs text-gray-500 ml-2">
+                  ({nights} diária{nights > 1 ? "s" : ""})
+                </span>
+              </>
+            ) : (
+              <span className="text-gray-400">
+                {nights === 0 ? "Defina as datas" : "Informe o valor total"}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Condutores */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Condutores ({rental.drivers.length})
         </label>
 
-        {/* Adicionar condutor manualmente */}
         <div className="grid grid-cols-2 gap-2 mb-2">
           <Input
             placeholder="Nome do condutor *"
@@ -201,7 +263,6 @@ export default function CarRentalItem({
           {isSubmitting ? "Cadastrando..." : "+ Adicionar condutor manualmente"}
         </button>
 
-        {/* Autocomplete */}
         <div>
           <Input
             type="text"
@@ -225,14 +286,12 @@ export default function CarRentalItem({
                   {guest.email && (
                     <div className="text-gray-500 text-xs">{guest.email}</div>
                   )}
-                  {/* 🔥 DOCUMENTO REMOVIDO */}
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Lista de condutores */}
         {rental.drivers.length > 0 && (
           <div className="mt-2 space-y-1">
             {rental.drivers.map((driver) => (
@@ -245,7 +304,6 @@ export default function CarRentalItem({
                   {driver.email && (
                     <span className="text-gray-500 ml-2">{driver.email}</span>
                   )}
-                  {/* 🔥 DOCUMENTO REMOVIDO */}
                 </div>
                 <button
                   type="button"
