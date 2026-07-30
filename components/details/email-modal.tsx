@@ -29,10 +29,14 @@ export default function EmailModal({
 }: EmailModalProps) {
   const [activeTab, setActiveTab] = useState<"financeiro" | "colaborador">("financeiro");
 
-  const formatDate = (dateString: string) => {
-    const [year, month, day] = dateString.split("-");
-    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString("pt-BR");
-  };
+  function formatDate(dateString: string) {
+    if (!dateString) return "Data não informada";
+    const parts = dateString.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateString;
+  }
   // 🔥 FUNÇÃO PARA ATUALIZAR O PREVIEW EM TEMPO REAL
   const updatePreview = () => {
     const checkbox50 = document.getElementById("pagamento50") as HTMLInputElement;

@@ -144,7 +144,7 @@ export default function TasksSidebar({ requestId, isOpen, onClose }: TasksSideba
 
       <aside
         className={`
-          fixed top-0 right-0 h-full bg-white shadow-lg z-50 transition-transform duration-300
+          fixed top-0 right-0 h-full bg-white shadow-lg z-40 transition-transform duration-300
           w-96 p-4 overflow-y-auto
           ${isOpen ? "translate-x-0" : "translate-x-full"}
           lg:translate-x-0 lg:static lg:w-96 lg:shadow-none lg:border-l lg:border-gray-200
