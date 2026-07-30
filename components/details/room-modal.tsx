@@ -7,7 +7,7 @@ interface Guest {
   id: string;
   name: string;
   document: string;
-  email?: string; // ← ADICIONADO
+  email?: string;
 }
 
 interface RatePeriod {
@@ -34,8 +34,6 @@ interface RoomModalProps {
   roomTypes: Record<string, string>;
   startDate: string;
   endDate: string;
-  requestStartDate: string;
-  requestEndDate: string;
 }
 
 export default function RoomModal({
@@ -48,13 +46,11 @@ export default function RoomModal({
   roomTypes,
   startDate,
   endDate,
-  requestStartDate,
-  requestEndDate,
 }: RoomModalProps) {
   const [type, setType] = useState<Room["type"]>("individual");
   const [selectedGuests, setSelectedGuests] = useState<Guest[]>([]);
   const [periods, setPeriods] = useState<RatePeriod[]>([
-    { startDate: startDate || requestStartDate, endDate: endDate || requestEndDate, dailyRate: 0 }
+    { startDate: startDate || "", endDate: endDate || "", dailyRate: 0 }
   ]);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
@@ -68,23 +64,18 @@ export default function RoomModal({
     } else {
       setType("individual");
       setSelectedGuests([]);
-      setPeriods([{ startDate: startDate || requestStartDate, endDate: endDate || requestEndDate, dailyRate: 0 }]);
+      setPeriods([{ startDate: startDate || "", endDate: endDate || "", dailyRate: 0 }]);
     }
     setSearchTerm("");
     setError("");
     setValidationErrors([]);
-  }, [editingRoom, isOpen, startDate, endDate, requestStartDate, requestEndDate]);
+  }, [editingRoom, isOpen, startDate, endDate]);
 
   const validatePeriods = () => {
     const errors: string[] = [];
 
     periods.forEach((period, index) => {
-      if (period.startDate < requestStartDate) {
-        errors.push(`Período ${index + 1} começa antes da viagem.`);
-      }
-      if (period.endDate > requestEndDate) {
-        errors.push(`Período ${index + 1} termina depois da viagem.`);
-      }
+      // 🔥 REMOVIDAS AS VALIDAÇÕES DE RESTRIÇÃO DE VIAGEM
       if (period.startDate >= period.endDate) {
         errors.push(`Período ${index + 1} tem data de início maior ou igual ao fim.`);
       }
@@ -109,7 +100,7 @@ export default function RoomModal({
     const newStart = lastPeriod.endDate;
     setPeriods([
       ...periods,
-      { startDate: newStart, endDate: requestEndDate, dailyRate: 0 }
+      { startDate: newStart, endDate: endDate || "", dailyRate: 0 }
     ]);
   };
 
@@ -137,7 +128,8 @@ export default function RoomModal({
   const filteredGuests = availableGuests.filter(
     (guest) =>
       !selectedGuests.some((g) => g.id === guest.id) &&
-      guest.name.toLowerCase().includes(searchTerm.toLowerCase())
+      (guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       (guest.email && guest.email.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   const addGuest = (guest: Guest) => {
@@ -188,7 +180,7 @@ export default function RoomModal({
   const total = calculateTotal();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[100]">
       <div className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
           {editingRoom ? "✏️ Editar Quarto" : "➕ Adicionar Quarto"}
@@ -245,8 +237,6 @@ export default function RoomModal({
                           <input
                             type="date"
                             value={period.startDate}
-                            min={requestStartDate}
-                            max={requestEndDate}
                             onChange={(e) => updatePeriod(index, "startDate", e.target.value)}
                             className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
                           />
@@ -256,8 +246,6 @@ export default function RoomModal({
                           <input
                             type="date"
                             value={period.endDate}
-                            min={requestStartDate}
-                            max={requestEndDate}
                             onChange={(e) => updatePeriod(index, "endDate", e.target.value)}
                             className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
                           />
@@ -328,7 +316,6 @@ export default function RoomModal({
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors text-sm"
                     >
                       <div className="font-medium text-gray-900">{guest.name}</div>
-                      <div className="text-gray-500 text-xs">{guest.document}</div>
                       {guest.email && (
                         <div className="text-gray-400 text-xs">{guest.email}</div>
                       )}
