@@ -161,9 +161,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
               ← Voltar ao Dashboard
             </button>
             <div className="mb-4 flex justify-between items-center">
-              <button onClick={() => router.push("/")} className="text-blue-600 hover:text-blue-800 text-sm">
-                ← Voltar ao Dashboard
-              </button>
               <div className="flex gap-2">
                 <Link
                   href={`/requests/${params.id}/edit`}
@@ -174,12 +171,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
                 <DeleteButton requestId={params.id} requestName={request.event_name} />
               </div>
             </div>
-            <DeleteButton
-              requestId={params.id}
-              requestName={request.event_name}
-            />
           </div>
-
           <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
             <div className="flex justify-between items-start">
               <div>
