@@ -444,8 +444,6 @@ export default function HotelPlanning({
           roomTypes={roomTypes}
           startDate={checkIn}
           endDate={checkOut}
-          requestStartDate={startDate}
-          requestEndDate={endDate}
         />
       )}
 
