@@ -924,3 +924,201 @@ export async function getCarPlanning(requestId: string) {
 
   return data;
 }
+export async function updateRequest(id: string, data: RequestData) {
+  const supabase = createClient();
+
+  try {
+    // 1. Atualizar a solicitação principal
+    const { error: requestError } = await supabase
+      .from("requests")
+      .update({
+        event_name: data.eventName,
+        location: data.local,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (requestError) throw requestError;
+
+    // 2. Buscar os registros relacionados existentes
+    const { data: existingHotel, error: hotelError } = await supabase
+      .from("request_hotels")
+      .select("id")
+      .eq("request_id", id)
+      .maybeSingle();
+
+    if (hotelError) throw hotelError;
+
+    // 3. Atualizar ou criar hotel
+    if (data.hotel.enabled) {
+      if (existingHotel) {
+        // Atualiza hotel existente
+        const { error: updateHotelError } = await supabase
+          .from("request_hotels")
+          .update({
+            enabled: true,
+            observations: data.hotel.observations,
+          })
+          .eq("id", existingHotel.id);
+
+        if (updateHotelError) throw updateHotelError;
+
+        // Remove hóspedes antigos
+        const { error: deleteGuestsError } = await supabase
+          .from("hotel_guests")
+          .delete()
+          .eq("request_hotel_id", existingHotel.id);
+
+        if (deleteGuestsError) throw deleteGuestsError;
+
+        // Adiciona novos hóspedes
+        if (data.hotel.guests.length > 0) {
+          const hotelGuests = data.hotel.guests.map((guest) => ({
+            request_hotel_id: existingHotel.id,
+            guest_id: guest.id,
+          }));
+
+          const { error: insertGuestsError } = await supabase
+            .from("hotel_guests")
+            .insert(hotelGuests);
+
+          if (insertGuestsError) throw insertGuestsError;
+        }
+      } else {
+        // Cria novo hotel
+        const { data: newHotel, error: createHotelError } = await supabase
+          .from("request_hotels")
+          .insert({
+            request_id: id,
+            enabled: true,
+            observations: data.hotel.observations,
+          })
+          .select()
+          .single();
+
+        if (createHotelError) throw createHotelError;
+
+        if (data.hotel.guests.length > 0) {
+          const hotelGuests = data.hotel.guests.map((guest) => ({
+            request_hotel_id: newHotel.id,
+            guest_id: guest.id,
+          }));
+
+          const { error: insertGuestsError } = await supabase
+            .from("hotel_guests")
+            .insert(hotelGuests);
+
+          if (insertGuestsError) throw insertGuestsError;
+        }
+      }
+    } else if (existingHotel) {
+      // Se hotel foi desabilitado, remove
+      await supabase.from("request_hotels").delete().eq("id", existingHotel.id);
+    }
+
+    // 4. Passagem (similar ao hotel, mas mais simples)
+    const { data: existingFlight, error: flightError } = await supabase
+      .from("request_flights")
+      .select("id")
+      .eq("request_id", id)
+      .maybeSingle();
+
+    if (flightError) throw flightError;
+
+    if (data.flight.enabled) {
+      const flightData = {
+        enabled: true,
+        departure_date: data.flight.departureDate || null,
+        return_date: data.flight.returnDate || null,
+        observations: data.flight.observations,
+      };
+
+      if (existingFlight) {
+        await supabase
+          .from("request_flights")
+          .update(flightData)
+          .eq("id", existingFlight.id);
+      } else {
+        await supabase
+          .from("request_flights")
+          .insert({
+            request_id: id,
+            ...flightData,
+          });
+      }
+    } else if (existingFlight) {
+      await supabase.from("request_flights").delete().eq("id", existingFlight.id);
+    }
+
+    // 5. Carro (similar ao hotel, mas com múltiplas locações)
+    const { data: existingCar, error: carError } = await supabase
+      .from("request_cars")
+      .select("id")
+      .eq("request_id", id)
+      .maybeSingle();
+
+    if (carError) throw carError;
+
+    if (data.car.enabled && data.car.rentals.length > 0) {
+      let carId: string;
+
+      if (existingCar) {
+        carId = existingCar.id;
+        // Remove locações antigas
+        await supabase.from("car_rentals").delete().eq("request_car_id", carId);
+      } else {
+        const { data: newCar, error: createCarError } = await supabase
+          .from("request_cars")
+          .insert({
+            request_id: id,
+            enabled: true,
+          })
+          .select()
+          .single();
+
+        if (createCarError) throw createCarError;
+        carId = newCar.id;
+      }
+
+      // Adiciona novas locações
+      for (const rental of data.car.rentals) {
+        const { data: carRental, error: rentalError } = await supabase
+          .from("car_rentals")
+          .insert({
+            request_car_id: carId,
+            start_date: rental.startDate,
+            end_date: rental.endDate,
+            observations: rental.observations,
+          })
+          .select()
+          .single();
+
+        if (rentalError) throw rentalError;
+
+        if (rental.drivers.length > 0) {
+          const rentalDrivers = rental.drivers.map((driver) => ({
+            car_rental_id: carRental.id,
+            guest_id: driver.id,
+          }));
+
+          const { error: driversError } = await supabase
+            .from("rental_drivers")
+            .insert(rentalDrivers);
+
+          if (driversError) throw driversError;
+        }
+      }
+    } else if (existingCar) {
+      await supabase.from("request_cars").delete().eq("id", existingCar.id);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Erro ao atualizar solicitação:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Falha ao atualizar solicitação"
+    );
+  }
+}

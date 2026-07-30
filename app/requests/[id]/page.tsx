@@ -12,6 +12,7 @@ import DeleteButton from "@/components/ui/delete-button";
 import QuotationSection from "@/components/quotations/quotation-section";
 import TasksSidebar from "@/components/details/tasks-sidebar";
 import { updateStatus } from "./actions";
+import Link from "next/link";
 
 interface Params {
   id: string;
@@ -159,6 +160,20 @@ export default function RequestDetailPage({ params }: { params: Params }) {
             >
               ← Voltar ao Dashboard
             </button>
+            <div className="mb-4 flex justify-between items-center">
+              <button onClick={() => router.push("/")} className="text-blue-600 hover:text-blue-800 text-sm">
+                ← Voltar ao Dashboard
+              </button>
+              <div className="flex gap-2">
+                <Link
+                  href={`/requests/${params.id}/edit`}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  ✏️ Editar
+                </Link>
+                <DeleteButton requestId={params.id} requestName={request.event_name} />
+              </div>
+            </div>
             <DeleteButton
               requestId={params.id}
               requestName={request.event_name}

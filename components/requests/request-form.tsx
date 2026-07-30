@@ -7,7 +7,20 @@ import HotelSection from "./sections/hotel-section";
 import FlightSection from "./sections/flight-section";
 import CarSection from "./sections/car-section";
 import { createRequest } from "@/lib/services/request-service";
-import type { HotelGuest, CarDriver, CarRental } from "@/types/request";
+
+interface CarDriver {
+  id: string;
+  name: string;
+  document?: string;
+}
+
+interface CarRental {
+  id: string;
+  startDate: string;
+  endDate: string;
+  drivers: CarDriver[];
+  observations: string;
+}
 
 interface Request {
   eventName: string;
@@ -19,7 +32,7 @@ interface Request {
     guests: {
       id: string;
       name: string;
-      document?: string; // ← TORNE OPCIONAL
+      document?: string;
     }[];
     observations: string;
   };
@@ -35,8 +48,14 @@ interface Request {
   };
 }
 
-export default function RequestForm() {
-  const [request, setRequest] = useState<Request>({
+interface RequestFormProps {
+  initialData?: Request;
+  onSubmit?: (data: Request) => Promise<void>;
+  isEditing?: boolean;
+}
+
+export default function RequestForm({ initialData, onSubmit, isEditing }: RequestFormProps) {
+  const [request, setRequest] = useState<Request>(initialData || {
     eventName: "",
     local: "",
     startDate: "",
@@ -57,6 +76,8 @@ export default function RequestForm() {
       rentals: [],
     },
   });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toggleHotel = (checked: boolean) => {
     setRequest((prev) => ({
@@ -80,17 +101,27 @@ export default function RequestForm() {
   };
 
   const handleSubmit = async () => {
-    try {
-      if (!request.eventName.trim() || !request.local.trim()) {
-        alert("Preencha pelo menos o nome do evento e local");
-        return;
-      }
+    if (!request.eventName.trim() || !request.local.trim()) {
+      alert("Preencha pelo menos o nome do evento e local");
+      return;
+    }
 
-      const result = await createRequest(request);
-      alert(`✅ Solicitação criada com sucesso! ID: ${result.requestId}`);
-      window.location.href = "/";
+    setIsSubmitting(true);
+
+    try {
+      if (onSubmit) {
+        // Modo de edição
+        await onSubmit(request);
+      } else {
+        // Modo de criação
+        const result = await createRequest(request);
+        alert(`✅ Solicitação criada com sucesso! ID: ${result.requestId}`);
+        window.location.href = "/";
+      }
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Erro ao criar solicitação");
+      alert(error instanceof Error ? error.message : "Erro ao salvar solicitação");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -98,7 +129,7 @@ export default function RequestForm() {
     <div className="min-h-screen p-4 text-black">
       <form className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6 space-y-6">
         <h2 className="text-2xl font-bold text-gray-900">
-          Nova Solicitação de Viagem
+          {isEditing ? "✏️ Editar Solicitação" : "➕ Nova Solicitação de Viagem"}
         </h2>
 
         <div className="space-y-4">
@@ -249,9 +280,14 @@ export default function RequestForm() {
         <button
           type="button"
           onClick={handleSubmit}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          disabled={isSubmitting}
+          className={`w-full py-2 rounded-lg transition-colors font-medium ${
+            isSubmitting
+              ? "bg-gray-400 text-white cursor-not-allowed"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          }`}
         >
-          Salvar Solicitação
+          {isSubmitting ? "Salvando..." : isEditing ? "Atualizar Solicitação" : "Salvar Solicitação"}
         </button>
       </form>
     </div>
