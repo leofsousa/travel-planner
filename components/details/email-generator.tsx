@@ -129,7 +129,7 @@ export default function EmailGenerator({
     return `Olá, tudo bem?
   
   Segue informações das reservas de hotel realizadas para o evento
-  "${eventName}", na cidade ${location}.
+  "${eventName}", na cidade de ${location}.
   
   Hotel: ${hotelName}
   Check-in: ${formatDate(checkIn)}
