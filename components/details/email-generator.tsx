@@ -17,6 +17,19 @@ interface Room {
   total: number;
 }
 
+interface CarRental {
+  id: string;
+  supplier: string;
+  pickUpDate: string;
+  pickUpTime?: string;
+  returnDate: string;
+  returnTime?: string;
+  carModel?: string;
+  category?: string;
+  totalAmount: number;
+  observations?: string;
+}
+
 interface EmailGeneratorProps {
   eventName: string;
   location: string;
@@ -27,6 +40,12 @@ interface EmailGeneratorProps {
   rooms: Room[];
   nights: number;
   totalCost: number;
+  // 🔥 NOVOS DADOS PARA CARRO
+  carData?: {
+    hasRental: boolean;
+    rentals: CarRental[];
+    totalCost: number;
+  };
   defaultRecipients?: string[];
   guestEmails?: string[];
   type?: "financeiro" | "colaborador";
@@ -42,6 +61,7 @@ export default function EmailGenerator({
   rooms,
   nights,
   totalCost,
+  carData,
   defaultRecipients = [],
   guestEmails = [],
   type = "financeiro",
@@ -50,7 +70,7 @@ export default function EmailGenerator({
   const [recipients, setRecipients] = useState(
     type === "colaborador"
       ? guestEmails.join(", ")
-      : "contasapagar@remateweb.com, franciele.elias@remateweb.com, matheus.marques@remateweb.com"
+      : defaultRecipients.join(", ")
   );
   const [pagamento50, setPagamento50] = useState(false);
   const [pagamentoPersonalizado, setPagamentoPersonalizado] = useState(false);
@@ -131,6 +151,31 @@ export default function EmailGenerator({
     quadruplo: "Quadruplo",
   };
 
+  // 🔥 FUNÇÃO PARA FORMATAR OS DADOS DO CARRO
+  const formatCarRentals = (rentals: CarRental[]) => {
+    if (!rentals || rentals.length === 0) return "";
+
+    return rentals
+      .map((rental, index) => {
+        let nights = 0;
+        if (rental.pickUpDate && rental.returnDate) {
+          const start = new Date(rental.pickUpDate);
+          const end = new Date(rental.returnDate);
+          const diffTime = Math.abs(end.getTime() - start.getTime());
+          nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+        const dailyRate = nights > 0 ? rental.totalAmount / nights : 0;
+
+        return `Locação #${index + 1}
+  Fornecedor: ${rental.supplier || "Não informado"}
+  Período: ${formatDate(rental.pickUpDate)} a ${formatDate(rental.returnDate)}${rental.pickUpTime ? ` (Retirada: ${rental.pickUpTime})` : ""}${rental.returnTime ? ` (Devolução: ${rental.returnTime})` : ""}
+  Veículo: ${rental.carModel || "Não informado"}${rental.category ? ` - ${rental.category}` : ""}
+  Valor total: ${formatCurrency(rental.totalAmount)}${nights > 0 ? ` (${formatCurrency(dailyRate)}/dia)` : ""}
+  ${rental.observations ? `Obs: ${rental.observations}` : ""}`;
+      })
+      .join("\n\n");
+  };
+
   const generateEmailBody = () => {
     const valorAntecipado = getValorAntecipado();
     const valorRestante = getValorRestante();
@@ -162,6 +207,19 @@ ${periodsList}
       })
       .join("\n\n");
 
+    // 🔥 SEÇÃO DE CARROS (apenas para financeiro e se houver locações)
+    let carSection = "";
+    if (type === "financeiro" && carData?.hasRental && carData.rentals.length > 0) {
+      const rentalsFormatted = formatCarRentals(carData.rentals);
+      const carTotal = carData.totalCost || 0;
+      carSection = `
+🚗 Locações de Carro:
+${rentalsFormatted}
+
+Total das locações: ${formatCurrency(carTotal)}
+`;
+    }
+
     let pagamentoSection = "";
     if (temPagamento) {
       const percentual = pagamento50 ? "50%" : "personalizado";
@@ -171,12 +229,16 @@ Já foi pago ${formatCurrency(valorAntecipado)} (${percentual} do valor total).
 Restam ${formatCurrency(valorRestante)} a serem pagos no check-in.`;
     }
 
+    // 🔥 TOTAL GERAL (hotel + carro)
+    const totalGeral = totalCost + (carData?.totalCost || 0);
+
     const recipientText = recipients ? ` (para: ${recipients})` : "";
 
     return `Olá${recipientText},
 
-Segue as informações da reserva de hotel para o evento "${eventName}":
+Segue as informações da reserva para o evento "${eventName}":
 
+🏨 Hotel:
 Hotel: ${hotelName}
 ${hotelAddress ? `Endereço: ${hotelAddress}\n` : ""}Check-in: ${formatDate(checkIn)}
 Check-out: ${formatDate(checkOut)}
@@ -184,7 +246,10 @@ Total de diárias: ${nights}
 
 ${roomsSection}
 
-Valor total da reserva: ${formatCurrency(totalCost)}
+Valor total do hotel: ${formatCurrency(totalCost)}
+
+${carSection}
+💰 Valor total da reserva: ${formatCurrency(totalGeral)}
 ${pagamentoSection}
 
 Atenciosamente,`;
@@ -197,7 +262,7 @@ Atenciosamente,`;
   };
 
   const handleOpenEmail = () => {
-    const subject = `Reserva de Hotel - ${eventName}`;
+    const subject = `Reserva - ${eventName}`;
     const body = encodeURIComponent(generateEmailBody());
     const to = recipients || "";
     window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
