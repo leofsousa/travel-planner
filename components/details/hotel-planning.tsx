@@ -446,26 +446,6 @@ export default function HotelPlanning({
           endDate={checkOut}
         />
       )}
-
-      {/* 🔥 MODAL DE EMAIL */}
-      {isEmailModalOpen && (
-        <EmailModal
-          isOpen={isEmailModalOpen}
-          onClose={() => setIsEmailModalOpen(false)}
-          data={{
-            eventName,
-            location,
-            hotelName: hotelName || "Hotel não informado",
-            hotelAddress: hotelAddress || "Endereço não informado", // ← NOVO
-            checkIn,
-            checkOut,
-            rooms,
-            nights,
-            totalCost: calculateTotal(),
-          }}
-          guestEmails={guestEmails}
-        />
-      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 // components/details/flight-planning.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getFlightPlanning, saveFlightPlanning } from "@/lib/services/request-service";
@@ -14,6 +14,12 @@ interface FlightPlanningProps {
   location: string;
   startDate: string;
   endDate: string;
+  onDataChange?: (data: {
+    hasFlight: boolean;
+    departureDate: string;
+    returnDate: string;
+    observations: string;
+  }) => void;
 }
 
 interface FlightLeg {
@@ -35,13 +41,35 @@ export default function FlightPlanning({
   location,
   startDate,
   endDate,
+  onDataChange,
 }: FlightPlanningProps) {
   const [legs, setLegs] = useState<FlightLeg[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingLeg, setEditingLeg] = useState<FlightLeg | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   const initialLegsRef = useRef<FlightLeg[] | null>(null);
+
+  // 🔥 CALCULA DADOS DA PASSAGEM
+  const calculateFlightData = useCallback(() => {
+    const hasFlight = legs.length > 0;
+    const firstLeg = legs[0];
+    const lastLeg = legs[legs.length - 1];
+
+    return {
+      hasFlight,
+      departureDate: firstLeg?.departureDate || "",
+      returnDate: lastLeg?.arrivalDate || "",
+      observations: legs.map(l => l.observations).filter(Boolean).join(" | "),
+    };
+  }, [legs]);
+
+  // 🔥 NOTIFICAR O PAI SOBRE MUDANÇAS
+  useEffect(() => {
+    if (onDataChange && !loading) {
+      onDataChange(calculateFlightData());
+    }
+  }, [legs, loading, onDataChange, calculateFlightData]);
 
   // Carregar dados salvos
   useEffect(() => {
@@ -119,7 +147,7 @@ export default function FlightPlanning({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
+    <div className="bg-white rounded-lg shadow-lg p-6 space-y-6 text-black">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-900">✈️ Planejamento de Passagens</h2>
         <span className="text-sm text-gray-500">{legs.length} trecho(s)</span>

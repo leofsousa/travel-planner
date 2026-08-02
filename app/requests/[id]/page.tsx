@@ -11,6 +11,7 @@ import CarPlanning from "@/components/details/car-planning";
 import DeleteButton from "@/components/ui/delete-button";
 import QuotationSection from "@/components/quotations/quotation-section";
 import TasksSidebar from "@/components/details/tasks-sidebar";
+import EmailModal from "@/components/details/email-modal";
 import { updateStatus } from "./actions";
 import Link from "next/link";
 
@@ -32,7 +33,10 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <span className={`px-3 py-1 rounded-full text-sm font-medium ${colors[status as keyof typeof colors]}`}>
+    <span
+      className={`px-3 py-1 rounded-full text-sm font-medium ${colors[status as keyof typeof colors]
+        }`}
+    >
       {labels[status as keyof typeof labels]}
     </span>
   );
@@ -56,9 +60,12 @@ export default function RequestDetailPage({ params }: { params: Params }) {
   const [request, setRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isTasksOpen, setIsTasksOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [guestEmails, setGuestEmails] = useState<string[]>([]);
 
   const [hotelSharedData, setHotelSharedData] = useState<{
     hotelName: string;
+    address?: string;
     checkIn: string;
     checkOut: string;
     rooms: any[];
@@ -66,11 +73,36 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     totalCost: number;
   }>({
     hotelName: "",
+    address: "",
     checkIn: "",
     checkOut: "",
     rooms: [],
     nights: 0,
     totalCost: 0,
+  });
+
+  // 🔥 ESTADO PARA OS DADOS DO CARRO
+  const [carSharedData, setCarSharedData] = useState<{
+    hasRental: boolean;
+    rentals: any[];
+    totalCost: number;
+  }>({
+    hasRental: false,
+    rentals: [],
+    totalCost: 0,
+  });
+
+  // 🔥 ESTADO PARA OS DADOS DA PASSAGEM
+  const [flightSharedData, setFlightSharedData] = useState<{
+    hasFlight: boolean;
+    departureDate: string;
+    returnDate: string;
+    observations: string;
+  }>({
+    hasFlight: false,
+    departureDate: "",
+    returnDate: "",
+    observations: "",
   });
 
   useEffect(() => {
@@ -91,35 +123,72 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     loadData();
   }, [params.id]);
 
-  const handleHotelDataChange = useCallback((data: {
-    hotelName: string;
-    checkIn: string;
-    checkOut: string;
-    rooms: any[];
-    nights: number;
-    totalCost: number;
-  }) => {
-    setHotelSharedData((prev) => {
-      if (
-        prev.hotelName === data.hotelName &&
-        prev.checkIn === data.checkIn &&
-        prev.checkOut === data.checkOut &&
-        JSON.stringify(prev.rooms) === JSON.stringify(data.rooms) &&
-        prev.nights === data.nights &&
-        prev.totalCost === data.totalCost
-      ) {
-        return prev;
-      }
-      return {
-        hotelName: data.hotelName,
-        checkIn: data.checkIn,
-        checkOut: data.checkOut,
-        rooms: data.rooms,
-        nights: data.nights,
-        totalCost: data.totalCost,
-      };
+  const handleHotelDataChange = useCallback(
+    (data: {
+      hotelName: string;
+      address?: string; // ← ADICIONE AQUI TAMBÉM
+      checkIn: string;
+      checkOut: string;
+      rooms: any[];
+      nights: number;
+      totalCost: number;
+    }) => {
+      setHotelSharedData((prev) => {
+        if (
+          prev.hotelName === data.hotelName &&
+          prev.address === data.address &&
+          prev.checkIn === data.checkIn &&
+          prev.checkOut === data.checkOut &&
+          JSON.stringify(prev.rooms) === JSON.stringify(data.rooms) &&
+          prev.nights === data.nights &&
+          prev.totalCost === data.totalCost
+        ) {
+          return prev;
+        }
+        return {
+          hotelName: data.hotelName,
+          address: data.address || "",
+          checkIn: data.checkIn,
+          checkOut: data.checkOut,
+          rooms: data.rooms,
+          nights: data.nights,
+          totalCost: data.totalCost,
+        };
+      });
+    },
+    []
+  );
+
+  // 🔥 HANDLER PARA DADOS DO CARRO
+  const handleCarDataChange = useCallback((data: any) => {
+    setCarSharedData({
+      hasRental: data?.rentals?.length > 0 || false,
+      rentals: data?.rentals || [],
+      totalCost: data?.totalCost || 0,
     });
   }, []);
+
+  // 🔥 HANDLER PARA DADOS DA PASSAGEM
+  const handleFlightDataChange = useCallback((data: any) => {
+    setFlightSharedData({
+      hasFlight: data?.hasFlight || false,
+      departureDate: data?.departureDate || "",
+      returnDate: data?.returnDate || "",
+      observations: data?.observations || "",
+    });
+  }, []);
+
+  useEffect(() => {
+    const emails: string[] = [];
+    hotelSharedData.rooms.forEach((room) => {
+      room.guests?.forEach((guest: any) => {
+        if (guest.email && !emails.includes(guest.email)) {
+          emails.push(guest.email);
+        }
+      });
+    });
+    setGuestEmails(emails);
+  }, [hotelSharedData.rooms]);
 
   if (loading) {
     return (
@@ -133,7 +202,6 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     notFound();
   }
 
-  // 🔥 EXTRAÇÃO DOS DADOS MOVIDA PARA DEPOIS DA VERIFICAÇÃO
   const hotelData = request.request_hotels?.[0];
   const flightData = request.request_flights?.[0];
   const carData = request.request_cars?.[0];
@@ -142,17 +210,18 @@ export default function RequestDetailPage({ params }: { params: Params }) {
   const hasFlight = flightData?.enabled === true;
   const hasCar = carData?.enabled === true;
 
-  const availableGuests = hotelData?.hotel_guests?.map((hg: any) => ({
-    id: hg.guests.id,
-    name: hg.guests.full_name,
-    document: hg.guests.document,
-  })) || [];
+  const availableGuests =
+    hotelData?.hotel_guests?.map((hg: any) => ({
+      id: hg.guests.id,
+      name: hg.guests.full_name,
+      document: hg.guests.document,
+    })) || [];
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-6xl mx-auto flex gap-6">
         <div className="flex-1 min-w-0">
-          {/* 🔥 BOTÃO DE VOLTAR */}
+          {/* 🔥 BOTÃO DE VOLTAR E AÇÕES */}
           <div className="mb-4 flex justify-between items-center">
             <button
               onClick={() => router.push("/")}
@@ -160,18 +229,27 @@ export default function RequestDetailPage({ params }: { params: Params }) {
             >
               ← Voltar ao Dashboard
             </button>
-            <div className="mb-4 flex justify-between items-center">
-              <div className="flex gap-2">
-                <Link
-                  href={`/requests/${params.id}/edit`}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  ✏️ Editar
-                </Link>
-                <DeleteButton requestId={params.id} requestName={request.event_name} />
-              </div>
+            <div className="flex gap-2">
+              {/* 🔥 BOTÃO PARA GERAR EMAIL */}
+              <button
+                onClick={() => setIsEmailModalOpen(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                📧 Gerar Email da Reserva
+              </button>
+              <Link
+                href={`/requests/${params.id}/edit`}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                ✏️ Editar
+              </Link>
+              <DeleteButton
+                requestId={params.id}
+                requestName={request.event_name}
+              />
             </div>
           </div>
+
           <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
             <div className="flex justify-between items-start">
               <div>
@@ -186,23 +264,34 @@ export default function RequestDetailPage({ params }: { params: Params }) {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Data Início:</span>
-                <span className="ml-2 text-gray-900">{formatDate(request.start_date)}</span>
+                <span className="ml-2 text-gray-900">
+                  {formatDate(request.start_date)}
+                </span>
               </div>
               <div>
                 <span className="text-gray-500">Data Fim:</span>
-                <span className="ml-2 text-gray-900">{formatDate(request.end_date)}</span>
+                <span className="ml-2 text-gray-900">
+                  {formatDate(request.end_date)}
+                </span>
               </div>
               <div>
                 <span className="text-gray-500">Criado em:</span>
-                <span className="ml-2 text-gray-900">{formatDateTime(request.created_at)}</span>
+                <span className="ml-2 text-gray-900">
+                  {formatDateTime(request.created_at)}
+                </span>
               </div>
               <div>
                 <span className="text-gray-500">Última atualização:</span>
-                <span className="ml-2 text-gray-900">{formatDateTime(request.updated_at)}</span>
+                <span className="ml-2 text-gray-900">
+                  {formatDateTime(request.updated_at)}
+                </span>
               </div>
             </div>
 
-            <form action={(formData) => updateStatus(formData, params.id)} className="flex items-center gap-3 pt-2 border-t border-gray-100">
+            <form
+              action={(formData) => updateStatus(formData, params.id)}
+              className="flex items-center gap-3 pt-2 border-t border-gray-100"
+            >
               <label className="text-sm font-medium text-gray-700">Status:</label>
               <select
                 name="status"
@@ -248,6 +337,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
                 location={request.location}
                 startDate={request.start_date}
                 endDate={request.end_date}
+                onDataChange={handleFlightDataChange}
               />
             </div>
           )}
@@ -258,6 +348,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
                 requestId={params.id}
                 startDate={request.start_date}
                 endDate={request.end_date}
+                onDataChange={handleCarDataChange}
               />
             </div>
           )}
@@ -267,14 +358,28 @@ export default function RequestDetailPage({ params }: { params: Params }) {
           {/* ============================================ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div className="bg-white rounded-lg shadow-lg p-4">
-              <h2 className="font-semibold text-gray-900 mb-2">📋 Informações da Solicitação</h2>
+              <h2 className="font-semibold text-gray-900 mb-2">
+                📋 Informações da Solicitação
+              </h2>
               <div className="space-y-3 text-sm">
                 <div>
                   <p className="text-gray-500">Serviços solicitados:</p>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {hasHotel && <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">🏨 Hotel</span>}
-                    {hasFlight && <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">✈️ Passagem</span>}
-                    {hasCar && <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">🚗 Carro</span>}
+                    {hasHotel && (
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
+                        🏨 Hotel
+                      </span>
+                    )}
+                    {hasFlight && (
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
+                        ✈️ Passagem
+                      </span>
+                    )}
+                    {hasCar && (
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
+                        🚗 Carro
+                      </span>
+                    )}
                     {!hasHotel && !hasFlight && !hasCar && (
                       <span className="text-gray-400">Nenhum serviço solicitado</span>
                     )}
@@ -293,11 +398,13 @@ export default function RequestDetailPage({ params }: { params: Params }) {
                       <div className="mt-1">
                         <p className="text-gray-500 text-xs">Hóspedes:</p>
                         <ul className="list-disc list-inside text-xs text-gray-600">
-                          {request.request_hotels[0].hotel_guests.map((hg: any) => (
-                            <li key={hg.id}>
-                              {hg.guests.full_name} - {hg.guests.document}
-                            </li>
-                          ))}
+                          {request.request_hotels[0].hotel_guests.map(
+                            (hg: any) => (
+                              <li key={hg.id}>
+                                {hg.guests.full_name} - {hg.guests.document}
+                              </li>
+                            )
+                          )}
                         </ul>
                       </div>
                     )}
@@ -326,31 +433,47 @@ export default function RequestDetailPage({ params }: { params: Params }) {
                     <p className="font-medium text-gray-700">🚗 Locação de Carros</p>
                     {request.request_cars.car_rentals?.length > 0 ? (
                       <div className="space-y-2 mt-1">
-                        {request.request_cars.car_rentals.map((rental: any, index: number) => (
-                          <div key={rental.id} className="bg-gray-50 p-2 rounded text-xs">
-                            <p className="font-medium text-gray-700">Locação #{index + 1}</p>
-                            <p className="text-gray-600">Retirada: {formatDate(rental.start_date)}</p>
-                            <p className="text-gray-600">Entrega: {formatDate(rental.end_date)}</p>
-                            {rental.observations && (
-                              <p className="text-gray-600">Obs: {rental.observations}</p>
-                            )}
-                            {rental.rental_drivers?.length > 0 && (
-                              <div>
-                                <p className="text-gray-500">Condutores:</p>
-                                <ul className="list-disc list-inside text-gray-600">
-                                  {rental.rental_drivers.map((rd: any) => (
-                                    <li key={rd.id}>
-                                      {rd.guests.full_name} - {rd.guests.document}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                        {request.request_cars.car_rentals.map(
+                          (rental: any, index: number) => (
+                            <div
+                              key={rental.id}
+                              className="bg-gray-50 p-2 rounded text-xs"
+                            >
+                              <p className="font-medium text-gray-700">
+                                Locação #{index + 1}
+                              </p>
+                              <p className="text-gray-600">
+                                Retirada: {formatDate(rental.start_date)}
+                              </p>
+                              <p className="text-gray-600">
+                                Entrega: {formatDate(rental.end_date)}
+                              </p>
+                              {rental.observations && (
+                                <p className="text-gray-600">
+                                  Obs: {rental.observations}
+                                </p>
+                              )}
+                              {rental.rental_drivers?.length > 0 && (
+                                <div>
+                                  <p className="text-gray-500">Condutores:</p>
+                                  <ul className="list-disc list-inside text-gray-600">
+                                    {rental.rental_drivers.map((rd: any) => (
+                                      <li key={rd.id}>
+                                        {rd.guests.full_name} -{" "}
+                                        {rd.guests.document}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        )}
                       </div>
                     ) : (
-                      <p className="text-gray-400 text-xs">Nenhuma locação adicionada</p>
+                      <p className="text-gray-400 text-xs">
+                        Nenhuma locação adicionada
+                      </p>
                     )}
                   </div>
                 )}
@@ -393,10 +516,56 @@ export default function RequestDetailPage({ params }: { params: Params }) {
           onClick={() => setIsTasksOpen(true)}
           className="lg:hidden fixed bottom-4 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg z-20 hover:bg-blue-700 transition-colors"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+            />
           </svg>
         </button>
+
+        {/* ============================================ */}
+        {/* EMAIL MODAL */}
+        {/* ============================================ */}
+        {isEmailModalOpen && (
+          <EmailModal
+            isOpen={isEmailModalOpen}
+            onClose={() => setIsEmailModalOpen(false)}
+            data={{
+              eventName: request.event_name,
+              location: request.location,
+              hotel: {
+                name: hotelSharedData.hotelName || "Hotel não informado",
+                address: hotelSharedData.address || "Endereço não informado",
+                checkIn: hotelSharedData.checkIn,
+                checkOut: hotelSharedData.checkOut,
+                rooms: hotelSharedData.rooms,
+                nights: hotelSharedData.nights,
+                totalCost: hotelSharedData.totalCost,
+              },
+              car: {
+                hasRental: carSharedData.hasRental,
+                rentals: carSharedData.rentals,
+                totalCost: carSharedData.totalCost,
+              },
+              flight: {
+                hasFlight: flightSharedData.hasFlight,
+                departureDate: flightSharedData.departureDate,
+                returnDate: flightSharedData.returnDate,
+                observations: flightSharedData.observations,
+              },
+            }}
+            guestEmails={guestEmails}
+            defaultRecipients={["financeiro@empresa.com", "contabilidade@empresa.com"]}
+          />
+        )}
       </div>
     </div>
   );

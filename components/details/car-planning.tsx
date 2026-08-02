@@ -23,6 +23,11 @@ interface CarPlanningProps {
   requestId: string;
   startDate: string;
   endDate: string;
+  onDataChange?: (data: {
+    hasRental: boolean;
+    rentals: any[];
+    totalCost: number;
+  }) => void;
 }
 
 export default function CarPlanning({ requestId, startDate, endDate }: CarPlanningProps) {
@@ -110,7 +115,7 @@ export default function CarPlanning({ requestId, startDate, endDate }: CarPlanni
       <div className="space-y-4">
         {rentals.length === 0 ? (
           <p className="text-gray-400 text-sm text-center py-8">
-            Nenhuma locação adicionada. Clique em "Adicionar Locação" para começar.
+            Nenhuma locação adicionada. Clique em &quot;Nova loca&ccedil;&atilde;o&quot; para começar.
           </p>
         ) : (
           rentals.map((rental) => (
