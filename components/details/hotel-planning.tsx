@@ -420,19 +420,6 @@ export default function HotelPlanning({
           </div>
         )}
       </div>
-
-      {/* 🔥 BOTÃO PARA ABRIR O MODAL DE EMAIL - SEMPRE VISÍVEL QUANDO HOUVER QUARTOS */}
-      {rooms.length > 0 && (
-        <div className="border-t border-gray-200 pt-4">
-          <button
-            onClick={() => setIsEmailModalOpen(true)}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            📧 Gerar Email da Reserva
-          </button>
-        </div>
-      )}
-
       {isModalOpen && (
         <RoomModal
           isOpen={isModalOpen}
