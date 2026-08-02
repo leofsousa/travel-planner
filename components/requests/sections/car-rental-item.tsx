@@ -18,7 +18,7 @@ interface CarRental {
   startDate: string;
   endDate: string;
   drivers: CarDriver[];
-  totalAmount?: number; // ← NOVO: valor total da locação
+  totalAmount?: number;
   observations: string;
 }
 
@@ -162,7 +162,7 @@ export default function CarRentalItem({
   };
 
   return (
-    <div className="border border-gray-200 rounded-md bg-white p-4 space-y-4">
+    <div className="border border-gray-200 rounded-md bg-white p-4 space-y-4 text-black">
       <div className="flex justify-between items-start">
         <h3 className="font-medium text-gray-900">🚗 Locação #{rental.id.slice(-4)}</h3>
         <button
@@ -190,7 +190,7 @@ export default function CarRentalItem({
         />
       </div>
 
-      {/* 🔥 VALOR TOTAL E DIÁRIA */}
+      {/* 🔥 VALOR TOTAL E DIÁRIA - VERSÃO CORRIGIDA */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">

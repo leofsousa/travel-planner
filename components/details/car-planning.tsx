@@ -1,7 +1,7 @@
 // components/details/car-planning.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { getCarPlanning, saveCarPlanning } from "@/lib/services/request-service";
 import CarRentalCard from "./car-rental-card";
 import CarRentalModal from "./car-rental-modal";
@@ -15,7 +15,7 @@ interface CarRental {
   returnTime: string;
   carModel: string;
   category: string;
-  dailyRate: number;
+  totalAmount: number;
   observations: string;
 }
 
@@ -30,16 +30,14 @@ export default function CarPlanning({ requestId, startDate, endDate }: CarPlanni
   const [loading, setLoading] = useState(true);
   const [editingRental, setEditingRental] = useState<CarRental | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  const initialRentalsRef = useRef<CarRental[] | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
         const data = await getCarPlanning(requestId);
-        const loadedRentals = data?.rentals || [];
-        setRentals(loadedRentals);
-        initialRentalsRef.current = loadedRentals;
+        if (data) {
+          setRentals(data.rentals || []);
+        }
       } catch (error) {
         console.error("Erro ao carregar planejamento de carro:", error);
       } finally {
@@ -50,15 +48,11 @@ export default function CarPlanning({ requestId, startDate, endDate }: CarPlanni
   }, [requestId]);
 
   useEffect(() => {
-    if (loading || initialRentalsRef.current === null) return;
-
-    const isDifferent = JSON.stringify(rentals) !== JSON.stringify(initialRentalsRef.current);
-    if (!isDifferent) return;
+    if (loading) return;
 
     const saveTimeout = setTimeout(async () => {
       try {
         await saveCarPlanning(requestId, { rentals });
-        initialRentalsRef.current = rentals;
       } catch (error) {
         console.error("Erro ao salvar planejamento de carro:", error);
       }
@@ -116,7 +110,7 @@ export default function CarPlanning({ requestId, startDate, endDate }: CarPlanni
       <div className="space-y-4">
         {rentals.length === 0 ? (
           <p className="text-gray-400 text-sm text-center py-8">
-            Nenhuma locação adicionada. Clique em &quot;Adicionar Locação&quot; para começar.
+            Nenhuma locação adicionada. Clique em "Adicionar Locação" para começar.
           </p>
         ) : (
           rentals.map((rental) => (

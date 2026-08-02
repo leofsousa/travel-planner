@@ -12,7 +12,7 @@ interface CarRental {
   returnTime: string;
   carModel: string;
   category: string;
-  dailyRate: number;
+  totalAmount: number;
   observations: string;
 }
 
@@ -40,9 +40,21 @@ export default function CarRentalModal({
   const [returnTime, setReturnTime] = useState("");
   const [carModel, setCarModel] = useState("");
   const [category, setCategory] = useState("");
-  const [dailyRate, setDailyRate] = useState<number>(0);
+  const [totalAmount, setTotalAmount] = useState<number>(0);
   const [observations, setObservations] = useState("");
   const [error, setError] = useState("");
+
+  // 🔥 CALCULA O NÚMERO DE DIÁRIAS
+  const calculateNights = () => {
+    if (!pickUpDate || !returnDate) return 0;
+    const start = new Date(pickUpDate);
+    const end = new Date(returnDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const nights = calculateNights();
+  const dailyRate = totalAmount && nights > 0 ? totalAmount / nights : 0;
 
   useEffect(() => {
     if (editingRental) {
@@ -53,7 +65,7 @@ export default function CarRentalModal({
       setReturnTime(editingRental.returnTime || "");
       setCarModel(editingRental.carModel || "");
       setCategory(editingRental.category || "");
-      setDailyRate(editingRental.dailyRate || 0);
+      setTotalAmount(editingRental.totalAmount || 0);
       setObservations(editingRental.observations || "");
     } else {
       setSupplier("");
@@ -63,7 +75,7 @@ export default function CarRentalModal({
       setReturnTime("");
       setCarModel("");
       setCategory("");
-      setDailyRate(0);
+      setTotalAmount(0);
       setObservations("");
     }
     setError("");
@@ -80,6 +92,11 @@ export default function CarRentalModal({
       return;
     }
 
+    if (totalAmount <= 0) {
+      setError("Informe o valor total da locação");
+      return;
+    }
+
     onSave({
       supplier: supplier.trim(),
       pickUpDate,
@@ -88,15 +105,22 @@ export default function CarRentalModal({
       returnTime,
       carModel: carModel.trim(),
       category: category.trim(),
-      dailyRate,
+      totalAmount,
       observations: observations.trim(),
     });
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 text-black">
       <div className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-xl">
         <h2 className="text-xl font-bold text-gray-900 mb-4">
           {editingRental ? "✏️ Editar Locação" : "➕ Adicionar Locação"}
@@ -182,17 +206,25 @@ export default function CarRentalModal({
             </select>
           </div>
 
+          {/* 🔥 VALOR TOTAL DA LOCAÇÃO */}
           <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Valor da Diária (R$)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Valor total da locação (R$) *
+            </label>
             <input
               type="number"
               min="0"
               step="0.01"
-              value={dailyRate || ""}
-              onChange={(e) => setDailyRate(parseFloat(e.target.value) || 0)}
-              placeholder="Ex: 150.00"
+              value={totalAmount || ""}
+              onChange={(e) => setTotalAmount(parseFloat(e.target.value) || 0)}
+              placeholder="Ex: 1500.00"
               className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             />
+            {nights > 0 && totalAmount > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                💰 {formatCurrency(dailyRate)} / dia ({nights} diária{nights > 1 ? "s" : ""})
+              </p>
+            )}
           </div>
 
           <div className="col-span-2">

@@ -1,3 +1,4 @@
+// components/details/car-rental-card.tsx
 "use client";
 
 interface CarRental {
@@ -9,7 +10,7 @@ interface CarRental {
   returnTime: string;
   carModel: string;
   category: string;
-  dailyRate: number;
+  totalAmount?: number;
   observations: string;
 }
 
@@ -36,8 +37,20 @@ export default function CarRentalCard({ rental, onEdit, onRemove }: CarRentalCar
     }).format(value);
   };
 
+  // 🔥 CALCULA O NÚMERO DE DIÁRIAS
+  const calculateNights = () => {
+    if (!rental.pickUpDate || !rental.returnDate) return 0;
+    const start = new Date(rental.pickUpDate);
+    const end = new Date(rental.returnDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const nights = calculateNights();
+  const dailyRate = rental.totalAmount && nights > 0 ? rental.totalAmount / nights : 0;
+
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+    <div className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors text-black">
       <div className="flex justify-between items-start">
         <div>
           <h4 className="font-medium text-gray-900">
@@ -68,9 +81,14 @@ export default function CarRentalCard({ rental, onEdit, onRemove }: CarRentalCar
           <span className="font-medium">Devolução:</span> {formatDate(rental.returnDate)}
           {rental.returnTime && ` às ${rental.returnTime}`}
         </div>
-        {rental.dailyRate > 0 && (
+        {rental.totalAmount && rental.totalAmount > 0 && (
           <div className="col-span-2">
-            <span className="font-medium">Diária:</span> {formatCurrency(rental.dailyRate)}
+            <span className="font-medium">Valor total:</span> {formatCurrency(rental.totalAmount)}
+          </div>
+        )}
+        {nights > 0 && rental.totalAmount && rental.totalAmount > 0 && (
+          <div className="col-span-2">
+            <span className="font-medium">Valor por diária:</span> {formatCurrency(dailyRate)} ({nights} diária{nights > 1 ? "s" : ""})
           </div>
         )}
       </div>
