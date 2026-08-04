@@ -10,7 +10,6 @@ interface Metrics {
   inProgressTrips: number;
   completedTrips: number;
   topHotels: { name: string; count: number }[];
-  // 🔥 NOVAS MÉTRICAS
   totalCarRentals: number;
   totalFlights: number;
   totalHotelRooms: number;
@@ -27,6 +26,14 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
       currency: "BRL",
     }).format(value);
   };
+
+  if (!metrics) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p className="text-yellow-700">Nenhuma métrica disponível.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -81,7 +88,7 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
         </div>
       </div>
 
-      {/* 🔥 NOVOS CARDS: Serviços */}
+      {/* Cards de Serviços */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-purple-50 rounded-lg shadow p-4 border border-purple-200">
           <div className="flex items-center gap-2">
@@ -120,7 +127,7 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
         </div>
       </div>
 
-      {/* Status detalhado */}
+      {/* Status */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-yellow-50 rounded-lg shadow p-4 border border-yellow-200">
           <p className="text-sm text-gray-600">📋 A Fazer</p>
@@ -137,7 +144,7 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
       </div>
 
       {/* Top Hotéis */}
-      {metrics.topHotels.length > 0 && (
+      {metrics.topHotels && metrics.topHotels.length > 0 && (
         <div className="bg-white rounded-lg shadow p-4">
           <h3 className="text-sm font-medium text-gray-700 mb-2">🏆 Hotéis Mais Utilizados</h3>
           <div className="space-y-1">
@@ -151,8 +158,8 @@ export default function MetricsCards({ metrics }: MetricsCardsProps) {
         </div>
       )}
 
-      {/* Lista de Cidades */}
-      {metrics.uniqueCities.length > 0 && (
+      {/* Cidades */}
+      {metrics.uniqueCities && metrics.uniqueCities.length > 0 && (
         <div className="bg-white rounded-lg shadow p-4">
           <h3 className="text-sm font-medium text-gray-700 mb-2">🌍 Cidades Visitadas</h3>
           <div className="flex flex-wrap gap-2">

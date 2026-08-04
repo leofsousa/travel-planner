@@ -187,58 +187,64 @@ export async function createRequest(data: RequestData) {
 export async function getRequests() {
   const supabase = createClient();
 
-  const { data, error } = await supabase
-    .from("requests")
-    .select(`
-      *,
-      request_hotels (
-        id,
-        enabled,
-        observations,
-        hotel_guests (
-          guests (*)
-        )
-      ),
-      request_flights (
-        id,
-        enabled,
-        departure_date,
-        return_date,
-        observations
-      ),
-      request_cars (
-        id,
-        enabled,
-        car_rentals (
-          *,
-          rental_drivers (
-            guests (*)
-          )
-        )
-      ),
-      hotel_planning (
-        id,
-        hotel_name,
-        check_in,
-        check_out,
-        rooms (
+  try {
+    const { data, error } = await supabase
+      .from("requests")
+      .select(`
+        *,
+        request_hotels (
           id,
-          type,
-          periods,
-          room_guests (
+          enabled,
+          observations,
+          hotel_guests (
             guests (*)
           )
+        ),
+        request_flights (
+          id,
+          enabled,
+          departure_date,
+          return_date,
+          observations
+        ),
+        request_cars (
+          id,
+          enabled,
+          car_rentals (
+            *,
+            rental_drivers (
+              guests (*)
+            )
+          )
+        ),
+        hotel_planning (
+          id,
+          hotel_name,
+          check_in,
+          check_out,
+          rooms (
+            id,
+            type,
+            periods,
+            room_guests (
+              guests (*)
+            )
+          )
         )
-      )
-    `)
-    .order("created_at", { ascending: false });
+      `)
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("❌ Erro ao buscar solicitações:", error);
-    throw new Error(`Falha ao carregar solicitações: ${error.message}`);
+    if (error) {
+      console.error("❌ Erro ao buscar solicitações:", error);
+      return [];
+    }
+
+    console.log("✅ Solicitações carregadas:", data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error("❌ Erro inesperado:", error);
+    return [];
   }
-
-  return data;
 }
 
 export async function getRequestById(id: string) {
