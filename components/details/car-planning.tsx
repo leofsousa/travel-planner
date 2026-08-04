@@ -1,7 +1,7 @@
 // components/details/car-planning.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getCarPlanning, saveCarPlanning } from "@/lib/services/request-service";
 import CarRentalCard from "./car-rental-card";
 import CarRentalModal from "./car-rental-modal";
@@ -23,6 +23,7 @@ interface CarPlanningProps {
   requestId: string;
   startDate: string;
   endDate: string;
+  onCostChange?: (cost: number) => void;
   onDataChange?: (data: {
     hasRental: boolean;
     rentals: any[];
@@ -30,11 +31,22 @@ interface CarPlanningProps {
   }) => void;
 }
 
-export default function CarPlanning({ requestId, startDate, endDate }: CarPlanningProps) {
+export default function CarPlanning({ requestId, startDate, endDate, onCostChange }: CarPlanningProps) {
   const [rentals, setRentals] = useState<CarRental[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingRental, setEditingRental] = useState<CarRental | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const calculateCarTotal = useCallback(() => {
+    return rentals.reduce((sum, rental) => sum + (rental.totalAmount || 0), 0);
+  }, [rentals]);
+
+  useEffect(() => {
+    if (onCostChange) {
+      const total = calculateCarTotal();
+      onCostChange(total);
+    }
+  }, [rentals, onCostChange, calculateCarTotal]);
 
   useEffect(() => {
     async function loadData() {

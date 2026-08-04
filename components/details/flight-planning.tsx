@@ -14,6 +14,7 @@ interface FlightPlanningProps {
   location: string;
   startDate: string;
   endDate: string;
+  onCostChange?: (cost: number) => void;
   onDataChange?: (data: {
     hasFlight: boolean;
     departureDate: string;
@@ -42,6 +43,7 @@ export default function FlightPlanning({
   startDate,
   endDate,
   onDataChange,
+  onCostChange,
 }: FlightPlanningProps) {
   const [legs, setLegs] = useState<FlightLeg[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,18 @@ export default function FlightPlanning({
       observations: legs.map(l => l.observations).filter(Boolean).join(" | "),
     };
   }, [legs]);
+
+  const calculateFlightTotal = useCallback(() => {
+    // Atualmente não temos custo de voo, mas pode ser adicionado futuramente
+    return 0;
+  }, []);
+
+  useEffect(() => {
+    if (onCostChange) {
+      const total = calculateFlightTotal();
+      onCostChange(total);
+    }
+  }, [onCostChange, calculateFlightTotal]);
 
   // 🔥 NOTIFICAR O PAI SOBRE MUDANÇAS
   useEffect(() => {

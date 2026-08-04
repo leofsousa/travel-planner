@@ -37,6 +37,7 @@ interface HotelPlanningProps {
   startDate: string;
   endDate: string;
   availableGuests: Guest[];
+  onCostChange?: (cost: number) => void;
   onDataChange?: (data: {
     hotelName: string;
     checkIn: string;
@@ -55,6 +56,7 @@ export default function HotelPlanning({
   endDate,
   availableGuests,
   onDataChange,
+  onCostChange,
 }: HotelPlanningProps) {
   const [hotelName, setHotelName] = useState("");
   const [hotelAddress, setHotelAddress] = useState("");
@@ -67,6 +69,10 @@ export default function HotelPlanning({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHotel, setSelectedHotel] = useState<any>(null);
   const [guestEmails, setGuestEmails] = useState<string[]>([]);
+  
+  const calculateTotal = useCallback(() => {
+    return rooms.reduce((sum, room) => sum + room.total, 0);
+  }, [rooms]);
 
   const fetchHotelAddress = useCallback(async (name: string) => {
     if (!name) return;
@@ -84,6 +90,13 @@ export default function HotelPlanning({
       console.error("Erro ao buscar endereço do hotel:", error);
     }
   }, []);
+
+  useEffect(() => {
+    if (onCostChange) {
+      const total = calculateTotal();
+      onCostChange(total);
+    }
+  }, [rooms, onCostChange, calculateTotal]);
 
   useEffect(() => {
     if (hotelName) {
@@ -130,10 +143,7 @@ export default function HotelPlanning({
 
   const nights = calculateNights();
 
-  const calculateTotal = useCallback(() => {
-    return rooms.reduce((sum, room) => sum + room.total, 0);
-  }, [rooms]);
-
+  
   const handleDataChange = useCallback(() => {
     if (onDataChange && !isLoading) {
       onDataChange({

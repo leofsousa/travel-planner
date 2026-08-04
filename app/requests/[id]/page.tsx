@@ -14,6 +14,7 @@ import TasksSidebar from "@/components/details/tasks-sidebar";
 import EmailModal from "@/components/details/email-modal";
 import { updateStatus } from "./actions";
 import Link from "next/link";
+import CostSummary from '@/components/details/cost-summary';
 
 interface Params {
   id: string;
@@ -62,6 +63,9 @@ export default function RequestDetailPage({ params }: { params: Params }) {
   const [isTasksOpen, setIsTasksOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [guestEmails, setGuestEmails] = useState<string[]>([]);
+  const [hotelCost, setHotelCost] = useState(0);
+  const [carCost, setCarCost] = useState(0);
+  const [flightCost, setFlightCost] = useState(0);
 
   const [hotelSharedData, setHotelSharedData] = useState<{
     hotelName: string;
@@ -104,6 +108,18 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     returnDate: "",
     observations: "",
   });
+
+  const handleHotelCostChange = useCallback((cost: number) => {
+    setHotelCost(cost);
+  }, []);
+
+  const handleCarCostChange = useCallback((cost: number) => {
+    setCarCost(cost);
+  }, []);
+
+  const handleFlightCostChange = useCallback((cost: number) => {
+    setFlightCost(cost);
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -325,6 +341,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
                 endDate={request.end_date}
                 availableGuests={availableGuests}
                 onDataChange={handleHotelDataChange}
+                onCostChange={handleHotelCostChange} // ← NOVO
               />
             </div>
           )}
@@ -338,6 +355,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
                 startDate={request.start_date}
                 endDate={request.end_date}
                 onDataChange={handleFlightDataChange}
+                onCostChange={handleFlightCostChange} // ← NOVO
               />
             </div>
           )}
@@ -349,10 +367,17 @@ export default function RequestDetailPage({ params }: { params: Params }) {
                 startDate={request.start_date}
                 endDate={request.end_date}
                 onDataChange={handleCarDataChange}
+                onCostChange={handleCarCostChange} // ← NOVO
               />
             </div>
           )}
-
+          <div className="mt-4">
+            <CostSummary
+              hotelCost={hotelCost}
+              carCost={carCost}
+              flightCost={flightCost}
+            />
+          </div>
           {/* ============================================ */}
           {/* INFORMAÇÕES DA SOLICITAÇÃO E COTAÇÕES */}
           {/* ============================================ */}
