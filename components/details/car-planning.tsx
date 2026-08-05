@@ -31,7 +31,7 @@ interface CarPlanningProps {
   }) => void;
 }
 
-export default function CarPlanning({ requestId, startDate, endDate, onCostChange }: CarPlanningProps) {
+export default function CarPlanning({ requestId, startDate, endDate, onCostChange, onDataChange }: CarPlanningProps) {
   const [rentals, setRentals] = useState<CarRental[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingRental, setEditingRental] = useState<CarRental | null>(null);
@@ -40,6 +40,28 @@ export default function CarPlanning({ requestId, startDate, endDate, onCostChang
   const calculateCarTotal = useCallback(() => {
     return rentals.reduce((sum, rental) => sum + (rental.totalAmount || 0), 0);
   }, [rentals]);
+
+  useEffect(() => {
+    if (onDataChange && !loading) {
+      const totalCost = rentals.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
+      onDataChange({
+        hasRental: rentals.length > 0,
+        rentals: rentals.map((r) => ({
+          id: r.id,
+          supplier: r.supplier,
+          pickUpDate: r.pickUpDate,
+          pickUpTime: r.pickUpTime,
+          returnDate: r.returnDate,
+          returnTime: r.returnTime,
+          carModel: r.carModel,
+          category: r.category,
+          totalAmount: r.totalAmount || 0,
+          observations: r.observations,
+        })),
+        totalCost,
+      });
+    }
+  }, [rentals, loading, onDataChange]);
 
   useEffect(() => {
     if (onCostChange) {

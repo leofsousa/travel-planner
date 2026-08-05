@@ -560,38 +560,40 @@ export default function RequestDetailPage({ params }: { params: Params }) {
         {/* EMAIL MODAL */}
         {/* ============================================ */}
         {isEmailModalOpen && (
-          <EmailModal
-            isOpen={isEmailModalOpen}
-            onClose={() => setIsEmailModalOpen(false)}
-            data={{
-              eventName: request.event_name,
-              location: request.location,
-              hotel: {
-                name: hotelSharedData.hotelName || "Hotel não informado",
-                address: hotelSharedData.address || "Endereço não informado",
-                checkIn: hotelSharedData.checkIn,
-                checkOut: hotelSharedData.checkOut,
-                rooms: hotelSharedData.rooms,
-                nights: hotelSharedData.nights,
-                totalCost: hotelSharedData.totalCost,
-              },
-              car: {
-                hasRental: carSharedData.hasRental,
-                rentals: carSharedData.rentals,
-                totalCost: carSharedData.totalCost,
-              },
-              flight: {
-                hasFlight: flightSharedData.hasFlight,
-                departureDate: flightSharedData.departureDate,
-                returnDate: flightSharedData.returnDate,
-                observations: flightSharedData.observations,
-              },
-            }}
-            guestEmails={guestEmails}
-            defaultRecipients={["financeiro@empresa.com", "contabilidade@empresa.com"]}
-          />
-        )}
+  <EmailModal
+    isOpen={isEmailModalOpen}
+    onClose={() => setIsEmailModalOpen(false)}
+    data={{
+      eventName: request.event_name,
+      location: request.location,
+      hotel: {
+        name: hotelSharedData.hotelName || "Hotel não informado",
+        address: hotelSharedData.address || "Endereço não informado",
+        checkIn: hotelSharedData.checkIn,
+        checkOut: hotelSharedData.checkOut,
+        rooms: hotelSharedData.rooms,
+        nights: hotelSharedData.nights,
+        totalCost: hotelSharedData.totalCost,
+      },
+      car: {
+        hasRental: carSharedData.hasRental,
+        rentals: carSharedData.rentals,
+        totalCost: carSharedData.totalCost,
+      },
+      flight: {
+        hasFlight: flightSharedData.hasFlight,
+        departureDate: flightSharedData.departureDate,
+        returnDate: flightSharedData.returnDate,
+        observations: flightSharedData.observations,
+      },
+    }}
+    guestEmails={guestEmails}
+    defaultRecipients={["contasapagar@remateweb.com, franciele.elias@remateweb.com, matheus.marques@remateweb.com"]}
+  />
+)}
       </div>
     </div>
   );
 }
+
+// defaultRecipients={["contasapagar@remateweb.com, franciele.elias@remateweb.com, matheus.marques@remateweb.com"]}

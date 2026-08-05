@@ -1,4 +1,3 @@
-// components/details/email-generator.tsx
 "use client";
 
 import { useState } from "react";
@@ -40,7 +39,6 @@ interface EmailGeneratorProps {
   rooms: Room[];
   nights: number;
   totalCost: number;
-  // 🔥 NOVOS DADOS PARA CARRO
   carData?: {
     hasRental: boolean;
     rentals: CarRental[];
@@ -70,7 +68,7 @@ export default function EmailGenerator({
   const [recipients, setRecipients] = useState(
     type === "colaborador"
       ? guestEmails.join(", ")
-      : defaultRecipients.join(", ")
+      : defaultRecipients.join(" , ")
   );
   const [pagamento50, setPagamento50] = useState(false);
   const [pagamentoPersonalizado, setPagamentoPersonalizado] = useState(false);
@@ -151,7 +149,6 @@ export default function EmailGenerator({
     quadruplo: "Quadruplo",
   };
 
-  // 🔥 FUNÇÃO PARA FORMATAR OS DADOS DO CARRO
   const formatCarRentals = (rentals: CarRental[]) => {
     if (!rentals || rentals.length === 0) return "";
 
@@ -207,7 +204,6 @@ ${periodsList}
       })
       .join("\n\n");
 
-    // 🔥 SEÇÃO DE CARROS (apenas para financeiro e se houver locações)
     let carSection = "";
     if (type === "financeiro" && carData?.hasRental && carData.rentals.length > 0) {
       const rentalsFormatted = formatCarRentals(carData.rentals);
@@ -229,12 +225,11 @@ Já foi pago ${formatCurrency(valorAntecipado)} (${percentual} do valor total).
 Restam ${formatCurrency(valorRestante)} a serem pagos no check-in.`;
     }
 
-    // 🔥 TOTAL GERAL (hotel + carro)
     const totalGeral = totalCost + (carData?.totalCost || 0);
 
     const recipientText = recipients ? ` (para: ${recipients})` : "";
 
-    return `Olá,
+    return `Olá${recipientText},
 
 Segue as informações da reserva para o evento "${eventName}":
 
