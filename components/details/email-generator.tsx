@@ -231,7 +231,7 @@ Restam ${formatCurrency(valorRestante)} a serem pagos no check-in.`;
 
     return `Olá${recipientText},
 
-Segue as informações da reserva para o evento "${eventName}":
+Segue as informações da reserva para o evento "${eventName}", na cidade de ${location}:
 
 🏨 Hotel:
 Hotel: ${hotelName}
@@ -247,6 +247,9 @@ ${carSection}
 💰 Valor total da reserva: ${formatCurrency(totalGeral)}
 ${pagamentoSection}
 
+Lembrando que a empresa autoriza uso do cartão corporativo apenas para pagamentos relacionados a estádia, combustíveis e água. Sempre mediante a apresentação de nota fiscal.
+
+Grato desde já.
 Atenciosamente,`;
   };
 
