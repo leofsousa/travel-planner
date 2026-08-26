@@ -18,16 +18,18 @@ export interface Hotel {
 export async function getHotels(): Promise<Hotel[]> {
   const supabase = createClient();
 
+  // 🔥 FORÇA DADOS FRESCOS (sem cache)
   const { data, error } = await supabase
     .from("hotels")
     .select("*")
     .order("name", { ascending: true });
 
   if (error) {
-    console.error("Erro ao buscar hotéis:", error);
+    console.error("❌ Erro ao buscar hotéis:", error);
     throw new Error("Falha ao carregar hotéis");
   }
 
+  console.log("✅ Hotéis encontrados (fresh):", data?.length || 0);
   return data || [];
 }
 
