@@ -101,6 +101,8 @@ export default function HotelPlanning({
   useEffect(() => {
     if (hotelName) {
       fetchHotelAddress(hotelName);
+    } else {
+      setHotelAddress("");
     }
   }, [hotelName, fetchHotelAddress]);
 
@@ -148,6 +150,7 @@ export default function HotelPlanning({
     if (onDataChange && !isLoading) {
       onDataChange({
         hotelName,
+        adress: hotelAddress,
         checkIn,
         checkOut,
         rooms,
@@ -155,7 +158,7 @@ export default function HotelPlanning({
         totalCost: calculateTotal(),
       });
     }
-  }, [hotelName, checkIn, checkOut, rooms, nights, isLoading, onDataChange, calculateTotal]);
+  }, [hotelName, hotelAddress, checkIn, checkOut, rooms, nights, isLoading, onDataChange, calculateTotal]);
 
   useEffect(() => {
     handleDataChange();

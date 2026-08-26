@@ -139,43 +139,39 @@ export default function RequestDetailPage({ params }: { params: Params }) {
     loadData();
   }, [params.id]);
 
-  const handleHotelDataChange = useCallback(
-    (data: {
-      hotelName: string;
-      address?: string; // ← ADICIONE AQUI TAMBÉM
-      checkIn: string;
-      checkOut: string;
-      rooms: any[];
-      nights: number;
-      totalCost: number;
-    }) => {
-      setHotelSharedData((prev) => {
-        if (
-          prev.hotelName === data.hotelName &&
-          prev.address === data.address &&
-          prev.checkIn === data.checkIn &&
-          prev.checkOut === data.checkOut &&
-          JSON.stringify(prev.rooms) === JSON.stringify(data.rooms) &&
-          prev.nights === data.nights &&
-          prev.totalCost === data.totalCost
-        ) {
-          return prev;
-        }
-        return {
-          hotelName: data.hotelName,
-          address: data.address || "",
-          checkIn: data.checkIn,
-          checkOut: data.checkOut,
-          rooms: data.rooms,
-          nights: data.nights,
-          totalCost: data.totalCost,
-        };
-      });
-    },
-    []
-  );
+  const handleHotelDataChange = useCallback((data: {
+    hotelName: string;
+    address?: string; // ← ADICIONAR
+    checkIn: string;
+    checkOut: string;
+    rooms: any[];
+    nights: number;
+    totalCost: number;
+  }) => {
+    setHotelSharedData((prev) => {
+      if (
+        prev.hotelName === data.hotelName &&
+        prev.address === data.address &&
+        prev.checkIn === data.checkIn &&
+        prev.checkOut === data.checkOut &&
+        JSON.stringify(prev.rooms) === JSON.stringify(data.rooms) &&
+        prev.nights === data.nights &&
+        prev.totalCost === data.totalCost
+      ) {
+        return prev;
+      }
+      return {
+        hotelName: data.hotelName,
+        address: data.address || "",
+        checkIn: data.checkIn,
+        checkOut: data.checkOut,
+        rooms: data.rooms,
+        nights: data.nights,
+        totalCost: data.totalCost,
+      };
+    });
+  }, []);
 
-  // 🔥 HANDLER PARA DADOS DO CARRO
   const handleCarDataChange = useCallback((data: any) => {
     setCarSharedData({
       hasRental: data?.rentals?.length > 0 || false,
