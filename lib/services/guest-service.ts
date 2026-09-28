@@ -24,7 +24,6 @@ export async function getGuests(): Promise<Guest[]> {
   return data || [];
 }
 
-// Mantém a função clearGuestCache para compatibilidade
 export function clearGuestCache() {
 }
 
