@@ -8,10 +8,6 @@ const CACHE_TTL = 5 * 60 * 1000;
 
 // 🔍 BUSCAR TODOS
 export async function getGuests(): Promise<Guest[]> {
-  if (cachedGuests && cacheTimestamp && Date.now() - cacheTimestamp < CACHE_TTL) {
-    return cachedGuests;
-  }
-
   const supabase = createClient();
   
   const { data, error } = await supabase
@@ -24,10 +20,12 @@ export async function getGuests(): Promise<Guest[]> {
     throw new Error("Falha ao carregar lista de hóspedes");
   }
 
-  cachedGuests = data || [];
-  cacheTimestamp = Date.now();
-  
-  return cachedGuests;
+  console.log("✅ Hóspedes carregados (fresh):", data?.length || 0);
+  return data || [];
+}
+
+// Mantém a função clearGuestCache para compatibilidade
+export function clearGuestCache() {
 }
 
 // Criar Hóspede
