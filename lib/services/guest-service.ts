@@ -16,7 +16,11 @@ export async function getGuests(): Promise<Guest[]> {
     throw new Error("Falha ao carregar lista de hóspedes");
   }
 
+  console.log("✅ Hóspedes carregados (fresh):", data?.length || 0);
   return data || [];
+}
+
+export function clearGuestCache() {
 }
 
 // Criar Hóspede
