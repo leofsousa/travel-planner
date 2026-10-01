@@ -1,16 +1,11 @@
 // app/guests/page.tsx
-
-export const dynamic = 'force-dynamic'; // ← FORÇA RENDERIZAÇÃO DINÂMICA
-export const revalidate = 0; // ← DESABILITA CACHE
-
 import { getGuests } from "@/lib/services/guest-service";
-import GuestTable from "./components/guest-table";
+import GuestTable from "@/components/guest-table";
 
 export const dynamic = "force-dynamic";
 
 export default async function GuestsPage() {
   const guests = await getGuests();
-  console.log("👥 Hóspedes carregados na página:", guests.length);
 
   return (
     <div className="max-w-6xl mx-auto text-black">
