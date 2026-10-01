@@ -132,16 +132,19 @@ export default function FlightPlanning({
       }
     }, 500);
 
+    return () => clearTimeout(saveTimeout);
+  }, [legs, requestId, loading]);
+
+  // 🔥 Salva no desmonte caso haja alterações pendentes
+  useEffect(() => {
     return () => {
-      clearTimeout(saveTimeout);
       if (pendingSaveRef.current) {
         const currentLegs = latestLegsRef.current;
         saveFlightPlanning(requestIdRef.current, { legs: currentLegs })
           .catch((err) => console.error("Erro ao salvar no desmonte:", err));
-        pendingSaveRef.current = false;
       }
     };
-  }, [legs, requestId, loading]);
+  }, []);
 
   const addLeg = (legData: Omit<FlightLeg, "id">) => {
     const newLeg: FlightLeg = {

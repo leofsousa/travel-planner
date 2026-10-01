@@ -280,10 +280,12 @@ export default function HotelPlanning({
       }
     }, 500);
 
-    // 🔥 No cleanup: cancela o timeout mas dispara o save imediatamente se o
-    // componente estiver sendo desmontado com alterações pendentes
+    return () => clearTimeout(saveTimeout);
+  }, [hotelName, checkIn, checkOut, rooms, requestId, isLoading]);
+
+  // 🔥 Salva no desmonte caso haja alterações pendentes
+  useEffect(() => {
     return () => {
-      clearTimeout(saveTimeout);
       if (pendingSaveRef.current) {
         const current = latestDataRef.current;
         saveHotelPlanning(requestIdRef.current, {
@@ -296,10 +298,9 @@ export default function HotelPlanning({
             guests: room.guests.map((g) => g.id),
           })),
         }).catch((err) => console.error("Erro ao salvar no desmonte:", err));
-        pendingSaveRef.current = false;
       }
     };
-  }, [hotelName, checkIn, checkOut, rooms, requestId, isLoading]);
+  }, []);
 
   const addRoom = (roomData: Omit<Room, "id" | "total">) => {
     const total = roomData.periods.reduce((sum, period) => {

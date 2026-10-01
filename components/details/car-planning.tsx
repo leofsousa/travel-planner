@@ -121,16 +121,19 @@ export default function CarPlanning({ requestId, startDate, endDate, onCostChang
       }
     }, 500);
 
+    return () => clearTimeout(saveTimeout);
+  }, [rentals, requestId, loading]);
+
+  // 🔥 Salva no desmonte caso haja alterações pendentes
+  useEffect(() => {
     return () => {
-      clearTimeout(saveTimeout);
       if (pendingSaveRef.current) {
         const currentRentals = latestRentalsRef.current;
         saveCarPlanning(requestIdRef.current, { rentals: currentRentals })
           .catch((err) => console.error("Erro ao salvar no desmonte:", err));
-        pendingSaveRef.current = false;
       }
     };
-  }, [rentals, requestId, loading]);
+  }, []);
 
   const addRental = (rentalData: Omit<CarRental, "id">) => {
     const newRental: CarRental = {
