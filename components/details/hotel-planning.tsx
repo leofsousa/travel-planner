@@ -132,6 +132,16 @@ export default function HotelPlanning({
     rooms: Room[];
   } | null>(null);
 
+  // 🔥 Ref que sempre mantém os dados mais recentes para uso no cleanup de desmonte
+  const latestDataRef = useRef({ hotelName, checkIn, checkOut, rooms });
+  const pendingSaveRef = useRef(false);
+  const requestIdRef = useRef(requestId);
+
+  // Atualiza o ref toda vez que os estados mudam
+  useEffect(() => {
+    latestDataRef.current = { hotelName, checkIn, checkOut, rooms };
+  }, [hotelName, checkIn, checkOut, rooms]);
+
   const handleHotelSelected = (hotel: any) => {
     setSelectedHotel(hotel);
   };
@@ -238,32 +248,57 @@ export default function HotelPlanning({
       checkOut !== initialDataRef.current.checkOut ||
       JSON.stringify(rooms) !== JSON.stringify(initialDataRef.current.rooms);
 
-    if (!isDifferent) return;
+    if (!isDifferent) {
+      pendingSaveRef.current = false;
+      return;
+    }
+
+    pendingSaveRef.current = true;
 
     const saveTimeout = setTimeout(async () => {
       try {
-        await saveHotelPlanning(requestId, {
-          hotelName,
-          checkIn,
-          checkOut,
-          rooms: rooms.map((room) => ({
+        const current = latestDataRef.current;
+        await saveHotelPlanning(requestIdRef.current, {
+          hotelName: current.hotelName,
+          checkIn: current.checkIn,
+          checkOut: current.checkOut,
+          rooms: current.rooms.map((room) => ({
             type: room.type,
             periods: room.periods,
             guests: room.guests.map((g) => g.id),
           })),
         });
         initialDataRef.current = {
-          hotelName,
-          checkIn,
-          checkOut,
-          rooms,
+          hotelName: current.hotelName,
+          checkIn: current.checkIn,
+          checkOut: current.checkOut,
+          rooms: current.rooms,
         };
+        pendingSaveRef.current = false;
       } catch (error) {
         console.error("Erro ao salvar planejamento:", error);
       }
     }, 500);
 
-    return () => clearTimeout(saveTimeout);
+    // 🔥 No cleanup: cancela o timeout mas dispara o save imediatamente se o
+    // componente estiver sendo desmontado com alterações pendentes
+    return () => {
+      clearTimeout(saveTimeout);
+      if (pendingSaveRef.current) {
+        const current = latestDataRef.current;
+        saveHotelPlanning(requestIdRef.current, {
+          hotelName: current.hotelName,
+          checkIn: current.checkIn,
+          checkOut: current.checkOut,
+          rooms: current.rooms.map((room) => ({
+            type: room.type,
+            periods: room.periods,
+            guests: room.guests.map((g) => g.id),
+          })),
+        }).catch((err) => console.error("Erro ao salvar no desmonte:", err));
+        pendingSaveRef.current = false;
+      }
+    };
   }, [hotelName, checkIn, checkOut, rooms, requestId, isLoading]);
 
   const addRoom = (roomData: Omit<Room, "id" | "total">) => {

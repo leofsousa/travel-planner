@@ -1,7 +1,7 @@
 // components/details/car-planning.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getCarPlanning, saveCarPlanning } from "@/lib/services/request-service";
 import CarRentalCard from "./car-rental-card";
 import CarRentalModal from "./car-rental-modal";
@@ -36,6 +36,15 @@ export default function CarPlanning({ requestId, startDate, endDate, onCostChang
   const [loading, setLoading] = useState(true);
   const [editingRental, setEditingRental] = useState<CarRental | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const initialRentalsRef = useRef<CarRental[] | null>(null);
+  const latestRentalsRef = useRef(rentals);
+  const pendingSaveRef = useRef(false);
+  const requestIdRef = useRef(requestId);
+
+  useEffect(() => {
+    latestRentalsRef.current = rentals;
+  }, [rentals]);
 
   const calculateCarTotal = useCallback(() => {
     return rentals.reduce((sum, rental) => sum + (rental.totalAmount || 0), 0);
@@ -75,7 +84,11 @@ export default function CarPlanning({ requestId, startDate, endDate, onCostChang
       try {
         const data = await getCarPlanning(requestId);
         if (data) {
-          setRentals(data.rentals || []);
+          const loadedRentals = data.rentals || [];
+          setRentals(loadedRentals);
+          initialRentalsRef.current = loadedRentals;
+        } else {
+          initialRentalsRef.current = [];
         }
       } catch (error) {
         console.error("Erro ao carregar planejamento de carro:", error);
@@ -87,17 +100,36 @@ export default function CarPlanning({ requestId, startDate, endDate, onCostChang
   }, [requestId]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || initialRentalsRef.current === null) return;
+
+    const isDifferent = JSON.stringify(rentals) !== JSON.stringify(initialRentalsRef.current);
+    if (!isDifferent) {
+      pendingSaveRef.current = false;
+      return;
+    }
+
+    pendingSaveRef.current = true;
 
     const saveTimeout = setTimeout(async () => {
       try {
-        await saveCarPlanning(requestId, { rentals });
+        const currentRentals = latestRentalsRef.current;
+        await saveCarPlanning(requestIdRef.current, { rentals: currentRentals });
+        initialRentalsRef.current = currentRentals;
+        pendingSaveRef.current = false;
       } catch (error) {
         console.error("Erro ao salvar planejamento de carro:", error);
       }
     }, 500);
 
-    return () => clearTimeout(saveTimeout);
+    return () => {
+      clearTimeout(saveTimeout);
+      if (pendingSaveRef.current) {
+        const currentRentals = latestRentalsRef.current;
+        saveCarPlanning(requestIdRef.current, { rentals: currentRentals })
+          .catch((err) => console.error("Erro ao salvar no desmonte:", err));
+        pendingSaveRef.current = false;
+      }
+    };
   }, [rentals, requestId, loading]);
 
   const addRental = (rentalData: Omit<CarRental, "id">) => {

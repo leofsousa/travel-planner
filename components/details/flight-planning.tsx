@@ -51,6 +51,13 @@ export default function FlightPlanning({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const initialLegsRef = useRef<FlightLeg[] | null>(null);
+  const latestLegsRef = useRef(legs);
+  const pendingSaveRef = useRef(false);
+  const requestIdRef = useRef(requestId);
+
+  useEffect(() => {
+    latestLegsRef.current = legs;
+  }, [legs]);
 
   // 🔥 CALCULA DADOS DA PASSAGEM
   const calculateFlightData = useCallback(() => {
@@ -107,18 +114,33 @@ export default function FlightPlanning({
     if (loading || initialLegsRef.current === null) return;
 
     const isDifferent = JSON.stringify(legs) !== JSON.stringify(initialLegsRef.current);
-    if (!isDifferent) return;
+    if (!isDifferent) {
+      pendingSaveRef.current = false;
+      return;
+    }
+
+    pendingSaveRef.current = true;
 
     const saveTimeout = setTimeout(async () => {
       try {
-        await saveFlightPlanning(requestId, { legs });
-        initialLegsRef.current = legs;
+        const currentLegs = latestLegsRef.current;
+        await saveFlightPlanning(requestIdRef.current, { legs: currentLegs });
+        initialLegsRef.current = currentLegs;
+        pendingSaveRef.current = false;
       } catch (error) {
         console.error("Erro ao salvar planejamento de voo:", error);
       }
     }, 500);
 
-    return () => clearTimeout(saveTimeout);
+    return () => {
+      clearTimeout(saveTimeout);
+      if (pendingSaveRef.current) {
+        const currentLegs = latestLegsRef.current;
+        saveFlightPlanning(requestIdRef.current, { legs: currentLegs })
+          .catch((err) => console.error("Erro ao salvar no desmonte:", err));
+        pendingSaveRef.current = false;
+      }
+    };
   }, [legs, requestId, loading]);
 
   const addLeg = (legData: Omit<FlightLeg, "id">) => {
