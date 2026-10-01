@@ -2,18 +2,10 @@
 import { createClient } from "@/lib/supabase/client";
 import type { Guest } from "@/types/guest";
 
-let cachedGuests: Guest[] | null = null;
-let cacheTimestamp: number | null = null;
-const CACHE_TTL = 5 * 60 * 1000;
-
 // 🔍 BUSCAR TODOS
 export async function getGuests(): Promise<Guest[]> {
-  if (cachedGuests && cacheTimestamp && Date.now() - cacheTimestamp < CACHE_TTL) {
-    return cachedGuests;
-  }
-
   const supabase = createClient();
-  
+
   const { data, error } = await supabase
     .from("guests")
     .select("*")
@@ -24,10 +16,7 @@ export async function getGuests(): Promise<Guest[]> {
     throw new Error("Falha ao carregar lista de hóspedes");
   }
 
-  cachedGuests = data || [];
-  cacheTimestamp = Date.now();
-  
-  return cachedGuests;
+  return data || [];
 }
 
 // Criar Hóspede
@@ -37,7 +26,7 @@ export async function createGuest(data: {
   email?: string;
 }): Promise<Guest> {
   const supabase = createClient();
-  
+
   // 🔥 Só verifica duplicata se documento foi fornecido
   if (data.document) {
     const { data: existing } = await supabase
@@ -66,7 +55,6 @@ export async function createGuest(data: {
     throw new Error(`Falha ao criar hóspede: ${error.message}`);
   }
 
-  clearGuestCache();
   return guest;
 }
 
@@ -108,7 +96,6 @@ export async function updateGuest(id: string, data: {
     throw new Error(`Falha ao atualizar hóspede: ${error.message}`);
   }
 
-  clearGuestCache();
   return guest;
 }
 
@@ -125,12 +112,4 @@ export async function deleteGuest(id: string): Promise<void> {
     console.error("Erro ao deletar hóspede:", error);
     throw new Error(`Falha ao deletar hóspede: ${error.message}`);
   }
-
-  clearGuestCache();
-}
-
-// 🧹 LIMPAR CACHE
-export function clearGuestCache() {
-  cachedGuests = null;
-  cacheTimestamp = null;
 }

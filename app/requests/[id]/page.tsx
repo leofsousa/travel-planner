@@ -227,6 +227,7 @@ export default function RequestDetailPage({ params }: { params: Params }) {
       id: hg.guests.id,
       name: hg.guests.full_name,
       document: hg.guests.document,
+      email: hg.guests.email || "",
     })) || [];
 
   return (

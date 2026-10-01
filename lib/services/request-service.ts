@@ -263,7 +263,8 @@ export async function getRequestById(id: string) {
           guests (
             id,
             full_name,
-            document
+            document,
+            email
           )
         )
       ),

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Guest } from "@/types/guest";
-import { deleteGuest, clearGuestCache } from "@/lib/services/guest-service";
+import { deleteGuest } from "@/lib/services/guest-service";
 import GuestModal from "./guest-modal";
 import DocumentDisplay from "@/components/ui/document-display";
 
@@ -36,7 +36,6 @@ export default function GuestTable({ initialGuests }: GuestTableProps) {
       setIsDeleting(id);
       await deleteGuest(id);
       setGuests(guests.filter((g) => g.id !== id));
-      clearGuestCache();
     } catch (error) {
       alert(error instanceof Error ? error.message : "Erro ao excluir hóspede");
     } finally {

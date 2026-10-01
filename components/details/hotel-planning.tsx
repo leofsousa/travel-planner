@@ -40,6 +40,7 @@ interface HotelPlanningProps {
   onCostChange?: (cost: number) => void;
   onDataChange?: (data: {
     hotelName: string;
+    address?: string;
     checkIn: string;
     checkOut: string;
     rooms: Room[];
@@ -150,7 +151,7 @@ export default function HotelPlanning({
     if (onDataChange && !isLoading) {
       onDataChange({
         hotelName,
-        adress: hotelAddress,
+        address: hotelAddress,
         checkIn,
         checkOut,
         rooms,
