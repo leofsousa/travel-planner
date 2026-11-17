@@ -229,7 +229,7 @@ Restam ${formatCurrency(valorRestante)} a serem pagos no check-in.`;
 
     const recipientText = recipients ? ` (para: ${recipients})` : "";
 
-    return `Olá${recipientText},
+    return `Olá,
 
 Segue as informações da reserva para o evento "${eventName}", na cidade de ${location}:
 
